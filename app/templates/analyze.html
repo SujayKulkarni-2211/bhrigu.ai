@@ -1,0 +1,375 @@
+<!-- app/templates/analyze.html -->
+{% extends 'base.html' %}
+
+{% block title %}Analyze Dataset - Bhrigu.ai{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.upload') }}">Upload</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Analyze</li>
+            </ol>
+        </nav>
+        
+        <h2 class="mb-4">
+            <i class="fas fa-chart-bar text-primary me-2"></i> Dataset Analysis
+        </h2>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Dataset Overview Card -->
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-primary-light py-3">
+                <h3 class="card-title mb-0">Dataset Overview</h3>
+            </div>
+            <div class="card-body">
+                <div class="mb-3 d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-file-alt fa-2x text-primary"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-0">{{ experiment.dataset_original_name }}</h5>
+                        <p class="text-muted mb-0 small">Uploaded dataset</p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row g-2">
+                    <div class="col-6">
+                        <div class="stat-card bg-light p-3 rounded">
+                            <h6 class="text-muted mb-1">Rows</h6>
+                            <h4 class="mb-0">{{ data_info.num_rows }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card bg-light p-3 rounded">
+                            <h6 class="text-muted mb-1">Columns</h6>
+                            <h4 class="mb-0">{{ data_info.num_cols }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card bg-light p-3 rounded">
+                            <h6 class="text-muted mb-1">Numeric</h6>
+                            <h4 class="mb-0">{{ data_info.numeric_columns|length }}</h4>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card bg-light p-3 rounded">
+                            <h6 class="text-muted mb-1">Categorical</h6>
+                            <h4 class="mb-0">{{ data_info.categorical_columns|length }}</h4>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Configure Problem Type Form -->
+                <form method="POST" class="mt-4">
+                    <div class="mb-3">
+                        <label for="problem_type" class="form-label">Problem Type</label>
+                        <select class="form-select" id="problem_type" name="problem_type" required>
+                            <option value="" selected disabled>Select problem type</option>
+                            <option value="classification">Classification</option>
+                            <option value="regression">Regression</option>
+                        </select>
+                        <div class="form-text">
+                            Classification predicts categories, Regression predicts continuous values
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" name="data_type" value="tabular">
+                    
+                    <div class="mb-3">
+                        <label for="target_column" class="form-label">Target Column</label>
+                        <select class="form-select" id="target_column" name="target_column" required>
+                            <option value="" selected disabled>Select target column</option>
+                            {% for column in data_info.columns %}
+                            <option value="{{ column }}">{{ column }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            This is what your model will predict
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Feature Columns</label>
+                        <div class="feature-columns-container p-3 border rounded" style="max-height: 200px; overflow-y: auto;">
+                            {% for column in data_info.columns %}
+                            <div class="form-check">
+                                <input class="form-check-input feature-checkbox" type="checkbox" name="feature_columns" value="{{ column }}" id="feature_{{ loop.index }}">
+                                <label class="form-check-label" for="feature_{{ loop.index }}">
+                                    {{ column }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="form-text">
+                            Select columns to use for prediction
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-magic me-2"></i> Configure & Continue
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Data Analysis Tabs -->
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary-light py-3">
+                <ul class="nav nav-tabs card-header-tabs" id="analysisTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="sample-tab" data-bs-toggle="tab" data-bs-target="#sample" type="button" role="tab" aria-controls="sample" aria-selected="true">
+                            <i class="fas fa-table me-1"></i> Sample Data
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="stats-tab" data-bs-toggle="tab" data-bs-target="#stats" type="button" role="tab" aria-controls="stats" aria-selected="false">
+                            <i class="fas fa-calculator me-1"></i> Statistics
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="missing-tab" data-bs-toggle="tab" data-bs-target="#missing" type="button" role="tab" aria-controls="missing" aria-selected="false">
+                            <i class="fas fa-exclamation-triangle me-1"></i> Missing Values
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="correlation-tab" data-bs-toggle="tab" data-bs-target="#correlation" type="button" role="tab" aria-controls="correlation" aria-selected="false">
+                            <i class="fas fa-project-diagram me-1"></i> Correlations
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="analysisTabContent">
+                    <!-- Sample Data Tab -->
+                    <div class="tab-pane fade show active" id="sample" role="tabpanel" aria-labelledby="sample-tab">
+                        <h5 class="mb-3">Sample Data (First 5 rows)</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        {% for column in data_info.columns %}
+                                        <th>{{ column }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in data_info.sample_data %}
+                                    <tr>
+                                        {% for column in data_info.columns %}
+                                        <td>{{ row[column] }}</td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Statistics Tab -->
+                    <div class="tab-pane fade" id="stats" role="tabpanel" aria-labelledby="stats-tab">
+                        <h5 class="mb-3">Descriptive Statistics (Numeric Columns)</h5>
+                        {% if data_info.numeric_columns %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Statistic</th>
+                                        {% for column in data_info.numeric_columns %}
+                                        <th>{{ column }}</th>
+                                        {% endfor %}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for stat in ['count', 'mean', 'std', 'min', '25%', '50%', '75%', 'max'] %}
+                                    <tr>
+                                        <td><strong>{{ stat }}</strong></td>
+                                        {% for column in data_info.numeric_columns %}
+                                        <td>
+                                            {% if stat in data_info.statistics[column] %}
+                                            {{ "%.4f"|format(data_info.statistics[column][stat]) if data_info.statistics[column][stat] is number else data_info.statistics[column][stat] }}
+                                            {% else %}
+                                            -
+                                            {% endif %}
+                                        </td>
+                                        {% endfor %}
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            This dataset doesn't contain any numeric columns for statistical analysis.
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Missing Values Tab -->
+                    <div class="tab-pane fade" id="missing" role="tabpanel" aria-labelledby="missing-tab">
+                        <h5 class="mb-3">Missing Values Analysis</h5>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Column</th>
+                                        <th>Missing Count</th>
+                                        <th>Missing Percentage</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for column in data_info.columns %}
+                                    <tr>
+                                        <td>{{ column }}</td>
+                                        <td>{{ data_info.missing_values.get(column, 0) }}</td>
+                                        <td>
+                                            {% if data_info.num_rows > 0 %}
+                                            {{ "%.2f"|format(100 * data_info.missing_values.get(column, 0) / data_info.num_rows) }}%
+                                            {% else %}
+                                            0.00%
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if data_info.missing_values.get(column, 0) > 0 %}
+                                            <span class="badge bg-info">Will be imputed</span>
+                                            {% else %}
+                                            <span class="badge bg-success">Complete</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="mt-3">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Note:</strong> Missing values will be automatically handled during preprocessing:
+                                <ul class="mb-0 mt-2">
+                                    <li>Numeric columns: Replaced with mean value</li>
+                                    <li>Categorical columns: Replaced with most frequent value</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Correlation Tab -->
+                    <div class="tab-pane fade" id="correlation" role="tabpanel" aria-labelledby="correlation-tab">
+                        <h5 class="mb-3">Correlation Matrix</h5>
+                        {% if data_info.correlation_image %}
+                        <div class="text-center">
+                            <img src="data:image/png;base64,{{ data_info.correlation_image }}" class="img-fluid" alt="Correlation Matrix">
+                        </div>
+                        <div class="mt-3">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Interpreting the correlation matrix:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>Values close to 1 indicate strong positive correlation</li>
+                                    <li>Values close to -1 indicate strong negative correlation</li>
+                                    <li>Values close to 0 indicate little to no correlation</li>
+                                </ul>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            Not enough numeric columns to generate a correlation matrix.
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Data Processing Info Card -->
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-header bg-primary-light py-3">
+                <h5 class="card-title mb-0">Automatic Preprocessing</h5>
+            </div>
+            <div class="card-body">
+                <p>Bhrigu.ai will automatically perform these preprocessing steps:</p>
+                
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="fas fa-broom text-primary me-2"></i> Data Cleaning
+                                </h6>
+                                <ul class="small mb-0">
+                                    <li>Missing value imputation</li>
+                                    <li>Duplicate removal</li>
+                                    <li>Column type correction</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="fas fa-exchange-alt text-primary me-2"></i> Feature Engineering
+                                </h6>
+                                <ul class="small mb-0">
+                                    <li>Categorical encoding</li>
+                                    <li>Numerical scaling</li>
+                                    <li>Feature normalization</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const targetSelect = document.getElementById('target_column');
+        const featureCheckboxes = document.querySelectorAll('.feature-checkbox');
+        
+        // When target column changes, toggle the corresponding feature checkbox
+        targetSelect.addEventListener('change', function() {
+            const selectedTarget = this.value;
+            
+            // Enable all feature checkboxes first
+            featureCheckboxes.forEach(checkbox => {
+                checkbox.disabled = false;
+                if (checkbox.value === selectedTarget) {
+                    checkbox.checked = false;
+                    checkbox.disabled = true;
+                }
+            });
+        });
+        
+        // Select all features by default (except the target)
+        targetSelect.addEventListener('change', function() {
+            const selectedTarget = this.value;
+            
+            featureCheckboxes.forEach(checkbox => {
+                if (checkbox.value !== selectedTarget) {
+                    checkbox.checked = true;
+                } else {
+                    checkbox.checked = false;
+                    checkbox.disabled = true;
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

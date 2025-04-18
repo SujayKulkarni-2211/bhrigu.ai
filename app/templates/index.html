@@ -1,0 +1,263 @@
+<!-- app/templates/index.html -->
+{% extends 'base.html' %}
+
+{% block title %}Bhrigu.ai - Automated Machine Learning Platform{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section py-5">
+    <div class="row align-items-center">
+        <div class="col-lg-6 pe-lg-5">
+            <h1 class="display-4 fw-bold mb-4 text-gradient">Automated Machine Learning For Everyone</h1>
+            <p class="lead mb-4">Bhrigu.ai makes machine learning accessible to everyone. Upload your dataset, select a model, and get predictions in minutes — no coding required.</p>
+            <div class="d-flex flex-wrap gap-3">
+                <a href="{{ url_for('main.upload') }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-rocket me-2"></i> Try it Now
+                </a>
+                <a href="#features" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-info-circle me-2"></i> Learn More
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-6 mt-5 mt-lg-0">
+            <div class="card hero-image-card shadow">
+                <img src="{{ url_for('static', filename='images/hero-bg.jpg') }}" alt="AI Data Visualization" class="img-fluid rounded">
+                <div class="card-img-overlay d-flex align-items-center justify-content-center bg-primary bg-opacity-25 rounded">
+                    <div class="text-center text-white">
+                        <h3 class="fw-bold">Powerful ML Analytics</h3>
+                        <p class="lead">Classical, Neural & Quantum Models</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- How it Works Section -->
+<section id="how-it-works" class="py-5 mt-4">
+    <h2 class="text-center fw-bold mb-5">How It Works</h2>
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm hover-card">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon bg-primary bg-gradient text-white mb-4">
+                        <i class="fas fa-upload"></i>
+                    </div>
+                    <h3 class="card-title fw-bold">1. Upload Your Data</h3>
+                    <p class="card-text">Upload your CSV or Excel file and let Bhrigu.ai analyze it automatically.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm hover-card">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon bg-primary bg-gradient text-white mb-4">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h3 class="card-title fw-bold">2. Train a Model</h3>
+                    <p class="card-text">Select from recommended models or customize your own, then train with one click.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 border-0 shadow-sm hover-card">
+                <div class="card-body text-center p-4">
+                    <div class="feature-icon bg-primary bg-gradient text-white mb-4">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="card-title fw-bold">3. Get Results</h3>
+                    <p class="card-text">View performance metrics and download your trained model for future use.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="py-5 mt-4">
+    <h2 class="text-center fw-bold mb-5">Key Features</h2>
+    <div class="row g-4">
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 border-0 shadow-sm hover-card">
+                <div class="card-body p-4">
+                    <div class="feature-icon-small bg-primary-light text-primary mb-3">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h4 class="card-title fw-bold">AI-Powered Recommendations</h4>
+                    <p class="card-text">Get intelligent model suggestions based on your dataset characteristics.</p>
+                </div>
+            </div>
+        </div>
+<div class="col-md-6 col-lg-3">
+    <div class="card h-100 border-0 shadow-sm hover-card">
+        <div class="card-body p-4">
+            <div class="feature-icon-small bg-primary-light text-primary mb-3">
+                <i class="fas fa-tachometer-alt"></i>
+            </div>
+            <h4 class="card-title fw-bold">Real-time Training</h4>
+            <p class="card-text">Watch your model train in real-time with detailed progress logs.</p>
+        </div>
+    </div>
+</div>
+<div class="col-md-6 col-lg-3">
+    <div class="card h-100 border-0 shadow-sm hover-card">
+        <div class="card-body p-4">
+            <div class="feature-icon-small bg-primary-light text-primary mb-3">
+                <i class="fas fa-download"></i>
+            </div>
+            <h4 class="card-title fw-bold">Export Models</h4>
+            <p class="card-text">Download trained models and reports for integration into your workflows.</p>
+        </div>
+    </div>
+</div>
+<div class="col-md-6 col-lg-3">
+    <div class="card h-100 border-0 shadow-sm hover-card">
+        <div class="card-body p-4">
+            <div class="feature-icon-small bg-primary-light text-primary mb-3">
+                <i class="fas fa-atom"></i>
+            </div>
+            <h4 class="card-title fw-bold">Advanced Algorithms</h4>
+            <p class="card-text">Access classical, neural, and quantum machine learning models.</p>
+        </div>
+    </div>
+</div>
+</div>
+</section>
+
+<!-- Tiers Section -->
+<section id="tiers" class="py-5 mt-4">
+<h2 class="text-center fw-bold mb-5">Choose Your Plan</h2>
+<div class="row g-4 justify-content-center">
+<div class="col-md-4">
+    <div class="card h-100 border-0 shadow-sm tier-card">
+        <div class="card-header bg-primary-light text-center py-3">
+            <h3 class="mb-0 fw-bold">Guest</h3>
+        </div>
+        <div class="card-body p-4">
+            <div class="text-center mb-4">
+                <span class="display-6 fw-bold">Free</span>
+            </div>
+            <ul class="list-unstyled">
+                <li class="mb-3"><i class="fas fa-check text-success me-2"></i> One dataset at a time</li>
+                <li class="mb-3"><i class="fas fa-check text-success me-2"></i> Basic classical models</li>
+                <li class="mb-3"><i class="fas fa-check text-success me-2"></i> 1-hour training limit</li>
+                <li class="mb-3"><i class="fas fa-check text-success me-2"></i> Model download</li>
+                <li class="mb-3"><i class="fas fa-times text-danger me-2"></i> No saving experiments</li>
+                <li class="mb-3"><i class="fas fa-times text-danger me-2"></i> No neural networks</li>
+                <li class="mb-3"><i class="fas fa-times text-danger me-2"></i> No quantum models</li>
+            </ul>
+            <div class="d-grid mt-4">
+                <a href="{{ url_for('main.upload') }}" class="btn btn-outline-primary">Try Now</a>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="col-md-4">
+    <div class="card h-100 border-0 shadow tier-card border-primary">
+        <div class="card-header bg-primary text-white text-center py-3">
+            <h3 class="mb-0 fw-bold">Pro</h3>
+            <span class="badge bg-warning position-absolute top-0 start-50 translate-middle">Most Popular</span>
+        </div>
+        <div class="card-body p-4">
+            <div class="text-center mb-4">
+                <span class="display-6 fw-bold">₹299</span>
+                <span class="text-muted">/month</span>
+            </div>
+            <ul class="list-unstyled">
+                <li class="mb-3"><i class="fas fa-check text-success me-2"></i> Unlimited experiments</li>
+                <li class="mb-3"><i class="fas fa-check text-success me-2"></i> All classical models</li>
+                <li class="mb-3"><i class="fas fa-check text-success me-2"></i> Neural networks</li>
+                <li class="mb-3"><i class="fas fa-check text-success me-2"></i> Quantum models</li>
+                <li class="mb-3"><i class="fas fa-check text-success me-2"></i> 2 concurrent runs</li>
+                <li class="mb-3"><i class="fas fa-check text-success me-2"></i> No time limits</li>
+                <li class="mb-3"><i class="fas fa-check text-success me-2"></i> Ultra Mode access</li>
+            </ul>
+            <div class="d-grid mt-4">
+                <a href="#" class="btn btn-primary">Coming Soon</a>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+</section>
+
+<!-- FAQ Section -->
+<section id="faq" class="py-5 mt-4">
+<h2 class="text-center fw-bold mb-5">Frequently Asked Questions</h2>
+<div class="accordion" id="faqAccordion">
+<div class="accordion-item">
+    <h2 class="accordion-header" id="headingOne">
+        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+            What is Bhrigu.ai?
+        </button>
+    </h2>
+    <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+            Bhrigu.ai is an automated machine learning (AutoML) platform that allows you to upload datasets, analyze them, and automatically select, train, and tune machine learning models without requiring programming knowledge.
+        </div>
+    </div>
+</div>
+<div class="accordion-item">
+    <h2 class="accordion-header" id="headingTwo">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+            What file formats are supported?
+        </button>
+    </h2>
+    <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+            Currently, we support CSV and Excel (.xlsx, .xls) file formats. Make sure your data is properly formatted with column headers.
+        </div>
+    </div>
+</div>
+<div class="accordion-item">
+    <h2 class="accordion-header" id="headingThree">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+            Do I need to create an account?
+        </button>
+    </h2>
+    <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+            No, you can use the platform as a guest to try it out. However, creating an account gives you access to more features like saving experiments and using advanced models.
+        </div>
+    </div>
+</div>
+<div class="accordion-item">
+    <h2 class="accordion-header" id="headingFour">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+            What are the limitations of the free tier?
+        </button>
+    </h2>
+    <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+            The free tier allows you to try one dataset at a time with basic classical models. There's a 1-hour training time limit, and you cannot save your experiments for later use.
+        </div>
+    </div>
+</div>
+<div class="accordion-item">
+    <h2 class="accordion-header" id="headingFive">
+        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
+            What is a quantum machine learning model?
+        </button>
+    </h2>
+    <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive" data-bs-parent="#faqAccordion">
+        <div class="accordion-body">
+            Quantum machine learning models leverage quantum computing principles to potentially solve certain problems more efficiently than classical methods. They're particularly useful for complex datasets and can provide unique insights in specific domains.
+        </div>
+    </div>
+</div>
+</div>
+</section>
+
+<!-- Call to Action -->
+<section class="py-5 mt-5 text-center">
+<div class="card bg-primary text-white p-5 shadow-lg">
+<h2 class="display-5 fw-bold mb-3">Ready to Try Bhrigu.ai?</h2>
+<p class="lead mb-4">Experience the power of automated machine learning in minutes. No coding required.</p>
+<div class="d-flex justify-content-center">
+    <a href="{{ url_for('main.upload') }}" class="btn btn-light btn-lg px-5">
+        <i class="fas fa-rocket me-2"></i> Start Now
+    </a>
+</div>
+</div>
+</section>
+{% endblock %}
