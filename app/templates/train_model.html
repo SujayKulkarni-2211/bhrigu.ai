@@ -592,8 +592,10 @@
                                 statusTitle.textContent = statusText;
                             }
                             
-                            // If training completed, failed, or timed out, reload the page to show appropriate UI
-                            if (data.status === 'completed' || data.status === 'failed' || data.status === 'timed_out') {
+                            
+                            if (data.status === 'completed') {
+                                window.location.href = "/results/{{ experiment.id }}/{{ model_run.id }}";
+                            } else if (data.status === 'failed' || data.status === 'timed_out') {
                                 location.reload();
                             }
                         }

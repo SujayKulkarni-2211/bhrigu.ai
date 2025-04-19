@@ -7,14 +7,16 @@ from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from dotenv import load_dotenv
 load_dotenv()
+from flask_migrate import Migrate
 # Initialize SQLAlchemy
 db = SQLAlchemy()
+
 
 def create_app(config_name='development'):
     """Create and configure the Flask application"""
     # Create Flask app
     app = Flask(__name__, instance_relative_config=True)
-    
+    migrate = Migrate(app, db)
     # Load default configuration from config.py
     from app.config import config
     app.config.from_object(config[config_name])
@@ -50,6 +52,8 @@ def create_app(config_name='development'):
     with app.app_context():
         from app.models import experiment
         db.create_all()
+    
+    
     
     # Add Jinja template filter for JSON parsing
     @app.template_filter('from_json')
