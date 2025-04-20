@@ -15,17 +15,18 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Create necessary directories
-RUN mkdir -p uploads models reports instance
+RUN mkdir -p instance uploads models reports
 
 # Copy project files
 COPY . .
 
 # Set environment variables
 ENV FLASK_APP=run.py
-ENV FLASK_ENV=production
+ENV FLASK_ENV=development
+ENV PYTHONPATH=/app
 
 # Expose the port
 EXPOSE 5000
 
-# Run the app with gunicorn - fix the command here
+# Run the app with gunicorn
 CMD ["gunicorn", "--bind", "0.0.0.0:5000", "run:app"]

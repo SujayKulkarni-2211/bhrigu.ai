@@ -4,7 +4,7 @@ metadata:
   name: bhrigu-data-pvc
 spec:
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   resources:
     requests:
       storage: 10Gi
@@ -14,7 +14,7 @@ kind: Deployment
 metadata:
   name: bhrigu-guest
 spec:
-  replicas: 2
+  replicas: 1
   selector:
     matchLabels:
       app: bhrigu-guest
@@ -32,7 +32,7 @@ spec:
         - name: FLASK_APP
           value: "run.py"
         - name: FLASK_ENV
-          value: "production"
+          value: "development"
         - name: GEMINI_API_KEY
           valueFrom:
             secretKeyRef:
@@ -40,24 +40,33 @@ spec:
               key: gemini-api-key
         resources:
           requests:
-            memory: "128Mi"
+            memory: "256Mi"
             cpu: "100m"
           limits:
             memory: "512Mi"
             cpu: "500m"
         volumeMounts:
-        - name: bhrigu-data
-          mountPath: /app
-        - name: bhrigu-data
+        - name: instance-data
+          mountPath: /app/instance
+        - name: uploads-data
           mountPath: /app/uploads
-        - name: bhrigu-data
+        - name: models-data
           mountPath: /app/models
-        - name: bhrigu-data
+        - name: reports-data
           mountPath: /app/reports
       volumes:
-      - name: bhrigu-data
+      - name: instance-data
         persistentVolumeClaim:
-          claimName: bhrigu-data-pvc
+          claimName: instance-pvc
+      - name: uploads-data
+        persistentVolumeClaim:
+          claimName: uploads-pvc
+      - name: models-data
+        persistentVolumeClaim:
+          claimName: models-pvc
+      - name: reports-data
+        persistentVolumeClaim:
+          claimName: reports-pvc
 ---
 apiVersion: v1
 kind: Service
