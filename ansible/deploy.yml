@@ -4,26 +4,34 @@
   gather_facts: false
   
   tasks:
-    - name: Debug - List directory contents
-      shell: ls -la && ls -la k8s/
-      register: dir_contents
+    - name: Debug - Print working directory
+      shell: pwd
+      register: pwd_output
       
-    - name: Display directory contents
+    - name: Display working directory
       debug:
-        msg: "{{ dir_contents.stdout_lines }}"
+        msg: "Working directory: {{ pwd_output.stdout }}"
+        
+    - name: List parent directory contents
+      shell: ls -la ..
+      register: parent_dir
+      
+    - name: Display parent directory contents
+      debug:
+        msg: "{{ parent_dir.stdout_lines }}"
     
     - name: Apply PVCs
-      shell: kubectl apply -f k8s/pvcs.yaml
+      shell: kubectl apply -f ../k8s/pvcs.yaml
       ignore_errors: yes
       
     - name: Apply Secret
-      shell: kubectl apply -f k8s/secrets.yaml
+      shell: kubectl apply -f ../k8s/secrets.yaml
       
     - name: Apply Deployment
-      shell: kubectl apply -f k8s/deployment.yaml
+      shell: kubectl apply -f ../k8s/deployment.yaml
       
     - name: Apply Ingress
-      shell: kubectl apply -f k8s/ingress.yaml
+      shell: kubectl apply -f ../k8s/ingress.yaml
       
     - name: Wait for deployment to be ready
       shell: kubectl rollout status deployment/bhrigu-guest --timeout=300s
