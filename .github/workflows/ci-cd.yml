@@ -5,7 +5,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
@@ -23,21 +23,3 @@ jobs:
 
     - name: Push Docker Image
       run: docker push ${{ secrets.DOCKER_USERNAME }}/bhrigu-guest:latest
-
-    - name: Setup Ansible
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ansible
-
-    - name: Configure Google Cloud SDK
-      uses: google-github-actions/setup-gcloud@v1
-      with:
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
-
-    - name: Get GKE Credentials
-      run: |
-        gcloud container clusters get-credentials ${{ secrets.GKE_CLUSTER_NAME }} --zone ${{ secrets.GKE_CLUSTER_LOCATION }}
-
-    - name: Deploy to Kubernetes with Ansible
-      run: ansible-playbook ansible/deploy.yml
