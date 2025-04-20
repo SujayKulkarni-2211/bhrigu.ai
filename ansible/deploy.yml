@@ -1,0 +1,22 @@
+---
+- name: Deploy Bhrigu Guest Mode to Kubernetes
+  hosts: localhost
+  gather_facts: false
+  
+  tasks:
+    - name: Apply PVC and Deployment
+      shell: kubectl apply -f k8s/deployment.yaml
+      
+    - name: Apply database deployment
+      shell: kubectl apply -f k8s/database.yaml
+      
+    - name: Apply Secret
+      shell: kubectl apply -f k8s/secrets.yaml
+      
+    - name: Apply Ingress
+      shell: kubectl apply -f k8s/ingress.yaml
+      
+    - name: Wait for deployment to be ready
+      shell: kubectl rollout status deployment/bhrigu-guest
+      register: rollout_result
+      failed_when: rollout_result.rc != 0

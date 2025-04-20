@@ -1,0 +1,16 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.git/
+.env
+instance/
+uploads/*
+models/*
+reports/*
+.gitignore
+README.md
+k8s/
+.github/
+ansible/

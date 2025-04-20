@@ -1,0 +1,72 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: bhrigu-data-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bhrigu-guest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: bhrigu-guest
+  template:
+    metadata:
+      labels:
+        app: bhrigu-guest
+    spec:
+      containers:
+      - name: bhrigu-guest
+        image: sujayvk/bhrigu-guest:latest
+        ports:
+        - containerPort: 5000
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        env:
+        - name: FLASK_APP
+          value: "run.py"
+        - name: FLASK_ENV
+          value: "production"
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: bhrigu-secrets
+              key: gemini-api-key
+        volumeMounts:
+        - name: bhrigu-data
+          mountPath: /app
+        - name: bhrigu-data
+          mountPath: /app/uploads
+        - name: bhrigu-data
+          mountPath: /app/models
+        - name: bhrigu-data
+          mountPath: /app/reports
+      volumes:
+      - name: bhrigu-data
+        persistentVolumeClaim:
+          claimName: bhrigu-data-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bhrigu-guest-service
+spec:
+  type: ClusterIP
+  selector:
+    app: bhrigu-guest
+  ports:
+    - port: 80
+      targetPort: 5000
