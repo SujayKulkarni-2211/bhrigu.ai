@@ -30,28 +30,24 @@ jobs:
         push: true
         tags: sujayvk/bhrigu-guest:latest
 
+    - name: Setup Minikube
+      uses: medyagh/setup-minikube@master
+      
+    - name: Wait for Minikube to start
+      run: |
+        minikube status
+        kubectl get nodes
+
     - name: Setup Ansible
       run: |
         sudo apt-get update
         sudo apt-get install -y ansible
 
-    - name: Setup kubectl
-      uses: azure/setup-kubectl@v3
-
-    - name: Setup Minikube
-      if: github.event_name == 'pull_request'
-      uses: medyagh/setup-minikube@master
-
-    - name: Deploy to Minikube for PR validation
-      if: github.event_name == 'pull_request'
-      run: |
-        minikube start
-        kubectl apply -f k8s/pvcs.yaml
-        kubectl apply -f k8s/secrets.yaml
-        kubectl apply -f k8s/deployment.yaml
-        kubectl apply -f k8s/ingress.yaml
-        kubectl rollout status deployment/bhrigu-guest --timeout=120s
-
-    - name: Deploy to production with Ansible
-      if: github.event_name == 'push'
+    - name: Deploy with Ansible
       run: ansible-playbook ansible/deploy.yml
+      
+    - name: Verify deployment
+      run: |
+        kubectl get pods
+        kubectl get services
+        minikube service list
