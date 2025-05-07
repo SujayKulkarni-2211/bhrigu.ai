@@ -1,39 +1,112 @@
-import xml.etree.ElementTree as ET
+#!/usr/bin/env python3
+"""
+Script to generate a test summary from pytest HTML reports.
+This is used in the CI/CD pipeline to create a summary of test results.
+"""
 
-def generate_summary(xml_file, output_file):
-    tree = ET.parse(xml_file)
-    root = tree.getroot()
-    test_cases = []
+import os
+import re
+import json
+from bs4 import BeautifulSoup
+from datetime import datetime
+
+def parse_html_report(file_path):
+    """Parse the pytest HTML report and extract test results."""
+    if not os.path.exists(file_path):
+        return None
     
-    for testcase in root.findall(".//testcase"):
-        name = testcase.get("name")
-        classname = testcase.get("classname")
-        time = float(testcase.get("time", 0))
-        status = "Pass" if testcase.find("failure") is None else "Fail"
-        failure_msg = testcase.find("failure").get("message", "N/A") if testcase.find("failure") is not None else "N/A"
-        test_cases.append({
-            "Test Case Name": name,
-            "Description": f"Test in {classname}",
-            "Duration (s)": f"{time:.2f}",
-            "Status": status,
-            "Failure Message": failure_msg
-        })
+    with open(file_path, 'r', encoding='utf-8') as f:
+        soup = BeautifulSoup(f.read(), 'html.parser')
     
-    headers = ["Test Case Name", "Description", "Duration (s)", "Status", "Failure Message"]
-    rows = [[tc[h] for h in headers] for tc in test_cases]
-    col_widths = [max(len(str(row[i])) for row in rows + [headers]) for i in range(len(headers))]
+    # Extract summary information
+    summary = {}
+    summary_table = soup.find('p', text=re.compile('Run duration')).find_next('table')
+    if summary_table:
+        for row in summary_table.find_all('tr'):
+            cells = row.find_all('td')
+            if len(cells) == 2:
+                key = cells[0].text.strip()
+                value = cells[1].text.strip()
+                summary[key] = value
     
-    table = "| " + " | ".join(f"{h:<{w}}" for h, w in zip(headers, col_widths)) + " |\n"
-    table += "| " + " | ".join("-" * w for w in col_widths) + " |\n"
-    for row in rows:
-        table += "| " + " | ".join(f"{str(v):<{w}}" for v, w in zip(row, col_widths)) + " |\n"
+    # Extract test results
+    tests = []
+    results_table = soup.find('h2', text=re.compile('Results')).find_next('table')
+    if results_table:
+        for row in results_table.find_all('tr')[1:]:  # Skip header row
+            cells = row.find_all('td')
+            if len(cells) >= 3:
+                test_name = cells[2].text.strip()
+                test_result = "passed" if "passed" in row.get('class', []) else "failed"
+                tests.append({
+                    "name": test_name,
+                    "result": test_result
+                })
     
-    with open(output_file, "w") as f:
-        f.write("# Test Case Summary\n\n")
-        f.write(f"Total Tests: {len(test_cases)}\n")
-        f.write(f"Passed: {sum(1 for tc in test_cases if tc['Status'] == 'Pass')}\n")
-        f.write(f"Failed: {sum(1 for tc in test_cases if tc['Status'] == 'Fail')}\n\n")
-        f.write(table)
+    return {
+        "summary": summary,
+        "tests": tests
+    }
+
+def generate_summary():
+    """Generate a summary of test results from both guest and pro modules."""
+    guest_results = parse_html_report("guest/test-results.html")
+    pro_results = parse_html_report("pro/test-results.html")
+    
+    # Create summary dictionary
+    summary = {
+        "timestamp": datetime.now().isoformat(),
+        "guest": guest_results,
+        "pro": pro_results
+    }
+    
+    # Save as JSON
+    with open("test-summary.json", "w", encoding="utf-8") as f:
+        json.dump(summary, f, indent=2)
+    
+    # Generate Markdown report
+    md = "# Bhrigu.ai Test Summary\n\n"
+    md += f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+    
+    if guest_results:
+        md += "## Guest Module\n\n"
+        md += "### Summary\n\n"
+        md += "| Metric | Value |\n"
+        md += "|--------|-------|\n"
+        for key, value in guest_results["summary"].items():
+            md += f"| {key} | {value} |\n"
+        
+        md += "\n### Test Results\n\n"
+        md += "| Test Name | Result |\n"
+        md += "|-----------|--------|\n"
+        for test in guest_results["tests"]:
+            emoji = "✅" if test["result"] == "passed" else "❌"
+            md += f"| {test['name']} | {emoji} {test['result']} |\n"
+    else:
+        md += "## Guest Module\n\nNo test results available.\n\n"
+    
+    if pro_results:
+        md += "\n## Pro Module\n\n"
+        md += "### Summary\n\n"
+        md += "| Metric | Value |\n"
+        md += "|--------|-------|\n"
+        for key, value in pro_results["summary"].items():
+            md += f"| {key} | {value} |\n"
+        
+        md += "\n### Test Results\n\n"
+        md += "| Test Name | Result |\n"
+        md += "|-----------|--------|\n"
+        for test in pro_results["tests"]:
+            emoji = "✅" if test["result"] == "passed" else "❌"
+            md += f"| {test['name']} | {emoji} {test['result']} |\n"
+    else:
+        md += "\n## Pro Module\n\nNo test results available.\n\n"
+    
+    # Save as Markdown
+    with open("test-summary.md", "w", encoding="utf-8") as f:
+        f.write(md)
+    
+    print("Test summary generated successfully.")
 
 if __name__ == "__main__":
-    generate_summary("test-results.xml", "test_summary.md")
+    generate_summary()

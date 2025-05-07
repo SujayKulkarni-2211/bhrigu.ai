@@ -5,8 +5,6 @@ __pycache__/
 *.so
 .Python
 env/
-venv/
-ENV/
 build/
 develop-eggs/
 dist/
@@ -26,43 +24,41 @@ var/
 instance/
 .webassets-cache
 
-# SQLite
+# Virtualenv
+venv/
+ENV/
+
+# User-uploaded content and models
+guest/uploads/
+guest/reports/
+pro/uploads/
+pro/reports/
+pro/uploads/datasets/
+pro/uploads/profile_images/
+pro/uploads/reports/
+
+# SQLite databases
 *.db
 *.sqlite
 *.sqlite3
 
-# Uploads and model files
-uploads/
-reports/
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+test-results.html
+test-summary.json
+test-summary.md
 
 # Environment variables
 .env
-.env.*
-!.env.example
 
 # IDE specific files
 .idea/
 .vscode/
 *.swp
 *.swo
+
+# OS specific files
 .DS_Store
-
-# Logs
-logs/
-*.log
-
-# Node (if using JS build tools)
-node_modules/
-npm-debug.log
-
-# Coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-* docker-compose.yml
+Thumbs.db

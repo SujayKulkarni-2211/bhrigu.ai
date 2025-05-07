@@ -2,8 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: bhrigu-guest
-  labels:
-    app: bhrigu-guest
 spec:
   replicas: 1
   selector:
@@ -16,21 +14,12 @@ spec:
     spec:
       containers:
       - name: bhrigu-guest
-        image: your-dockerhub-username/bhrigu-guest:latest
+        image: ${DOCKER_HUB_USERNAME}/bhrigu-guest:latest
         ports:
         - containerPort: 5000
         env:
         - name: PRO_SERVICE_URL
           value: "http://bhrigu-pro:5001"
-        - name: FLASK_ENV
-          value: "production"
-        resources:
-          limits:
-            cpu: "500m"
-            memory: "512Mi"
-          requests:
-            cpu: "200m"
-            memory: "256Mi"
         volumeMounts:
         - name: uploads-volume
           mountPath: /app/uploads
@@ -38,21 +27,13 @@ spec:
           mountPath: /app/models
         - name: reports-volume
           mountPath: /app/reports
-        - name: db-volume
-          mountPath: /app/app
-          subPath: app.db
-        livenessProbe:
-          httpGet:
-            path: /
-            port: 5000
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /
-            port: 5000
-          initialDelaySeconds: 10
-          periodSeconds: 5
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
       volumes:
       - name: uploads-volume
         persistentVolumeClaim:
@@ -63,16 +44,11 @@ spec:
       - name: reports-volume
         persistentVolumeClaim:
           claimName: bhrigu-guest-reports-pvc
-      - name: db-volume
-        persistentVolumeClaim:
-          claimName: bhrigu-guest-db-pvc
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: bhrigu-pro
-  labels:
-    app: bhrigu-pro
 spec:
   replicas: 1
   selector:
@@ -85,36 +61,9 @@ spec:
     spec:
       containers:
       - name: bhrigu-pro
-        image: your-dockerhub-username/bhrigu-pro:latest
+        image: ${DOCKER_HUB_USERNAME}/bhrigu-pro:latest
         ports:
         - containerPort: 5001
-        env:
-        - name: FLASK_ENV
-          value: "production"
-        - name: GUEST_SERVICE_URL
-          value: "http://bhrigu-guest:5000"
-        - name: EMAIL_SERVER
-          valueFrom:
-            secretKeyRef:
-              name: bhrigu-secrets
-              key: email_server
-        - name: EMAIL_USERNAME
-          valueFrom:
-            secretKeyRef:
-              name: bhrigu-secrets
-              key: email_username
-        - name: EMAIL_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: bhrigu-secrets
-              key: email_password
-        resources:
-          limits:
-            cpu: "1000m"
-            memory: "1Gi"
-          requests:
-            cpu: "500m"
-            memory: "512Mi"
         volumeMounts:
         - name: uploads-volume
           mountPath: /app/uploads
@@ -122,21 +71,13 @@ spec:
           mountPath: /app/models
         - name: reports-volume
           mountPath: /app/reports
-        - name: db-volume
-          mountPath: /app/app
-          subPath: bhrigu_pro.db
-        livenessProbe:
-          httpGet:
-            path: /healthcheck
-            port: 5001
-          initialDelaySeconds: 30
-          periodSeconds: 10
-        readinessProbe:
-          httpGet:
-            path: /healthcheck
-            port: 5001
-          initialDelaySeconds: 10
-          periodSeconds: 5
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
       volumes:
       - name: uploads-volume
         persistentVolumeClaim:
@@ -147,17 +88,3 @@ spec:
       - name: reports-volume
         persistentVolumeClaim:
           claimName: bhrigu-pro-reports-pvc
-      - name: db-volume
-        persistentVolumeClaim:
-          claimName: bhrigu-pro-db-pvc
----
-# Secret for environment variables
-apiVersion: v1
-kind: Secret
-metadata:
-  name: bhrigu-secrets
-type: Opaque
-data:
-  email_server: c210cC5nbWFpbC5jb20=  # smtp.gmail.com
-  email_username: YmhyaWd1YWlAZ21haWwuY29t  # bhriguai@gmail.com (example)
-  email_password: eW91cnBhc3N3b3Jk  # yourpassword (example)

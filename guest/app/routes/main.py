@@ -30,10 +30,12 @@ def ensure_session():
     if 'session_id' not in session:
         session['session_id'] = str(uuid.uuid4())
 
+
+PRO_SERVICE_URL = os.environ.get('PRO_SERVICE_URL', 'http://bhrigu-pro:5001')
 @main_bp.route('/')
 def index():
     """Home page"""
-    return render_template('index.html')
+    return render_template('index.html',PRO_SERVICE_URL=PRO_SERVICE_URL)
 
 @main_bp.route('/upload', methods=['GET', 'POST'])
 def upload():

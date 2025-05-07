@@ -2,28 +2,24 @@ apiVersion: v1
 kind: Service
 metadata:
   name: bhrigu-guest
-  labels:
-    app: bhrigu-guest
 spec:
-  ports:
-  - port: 80
-    targetPort: 5000
-    protocol: TCP
-    name: http
   selector:
     app: bhrigu-guest
+  ports:
+  - port: 5000
+    targetPort: 5000
+    name: http
+  type: ClusterIP
 ---
 apiVersion: v1
 kind: Service
 metadata:
   name: bhrigu-pro
-  labels:
-    app: bhrigu-pro
 spec:
-  ports:
-  - port: 80
-    targetPort: 5001
-    protocol: TCP
-    name: http
   selector:
     app: bhrigu-pro
+  ports:
+  - port: 5001
+    targetPort: 5001
+    name: http
+  type: ClusterIP
