@@ -2,16 +2,15 @@ name: CI/CD Pipeline for Bhrigu.ai
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [main, master]
   pull_request:
-    branches: [ main, master ]
+    branches: [main, master]
 
 env:
   DOCKER_HUB_USERNAME: ${{ secrets.DOCKER_HUB_USERNAME }}
   DOCKER_HUB_ACCESS_TOKEN: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
   GUEST_IMAGE_NAME: bhrigu-guest
   PRO_IMAGE_NAME: bhrigu-pro
-  K8S_NAMESPACE: bhrigu
 
 jobs:
   test:
@@ -20,67 +19,54 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v2
       
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v2
       with:
         python-version: '3.12'
-        
-    - name: Cache pip dependencies
-      uses: actions/cache@v3
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
         
     - name: Install dependencies for Guest
       run: |
         cd guest
         pip install -r requirements.txt
-        pip install pytest pytest-html pytest-cov
-
+        pip install pytest pytest-html
+    
     - name: Install dependencies for Pro
       run: |
         cd pro
         pip install -r requirements.txt
-        pip install pytest pytest-html pytest-cov
+        pip install pytest pytest-html
         
     - name: Run Guest Tests
-      id: guest-tests
       run: |
         cd guest
-        python -m pytest tests/test.py -v --html=test-results.html --self-contained-html --cov=app || echo "test_failed=true" >> $GITHUB_OUTPUT
+        python -m pytest tests/test.py -v --html=test-results.html || echo "GUEST_TESTS_FAILED=true" >> $GITHUB_ENV
       continue-on-error: true
         
     - name: Run Pro Tests
-      id: pro-tests
       run: |
         cd pro
-        python -m pytest tests/test.py -v --html=test-results.html --self-contained-html --cov=app || echo "test_failed=true" >> $GITHUB_OUTPUT
+        python -m pytest tests/test.py -v --html=test-results.html || echo "PRO_TESTS_FAILED=true" >> $GITHUB_ENV
       continue-on-error: true
       
-    - name: Generate combined test report
+    - name: Generate Test Summary
       run: |
         cd guest
         python generate_test_summary.py
       
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v2
       with:
         name: test-results
         path: |
           guest/test-results.html
           pro/test-results.html
-          test-summary.md
-          test-summary.json
           
     - name: Check test results
-      if: steps.guest-tests.outputs.test_failed == 'true' || steps.pro-tests.outputs.test_failed == 'true'
+      if: env.GUEST_TESTS_FAILED == 'true' || env.PRO_TESTS_FAILED == 'true'
       run: |
-        echo "Tests failed! Check the test results for more details."
-        cat test-summary.md
+        echo "Tests failed!"
         exit 1
   
   build:
@@ -90,147 +76,57 @@ jobs:
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
-      
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v2
+      uses: actions/checkout@v2
       
     - name: Login to DockerHub
-      uses: docker/login-action@v2
+      uses: docker/login-action@v1
       with:
         username: ${{ env.DOCKER_HUB_USERNAME }}
         password: ${{ env.DOCKER_HUB_ACCESS_TOKEN }}
-    
-    - name: Generate version tag
-      id: version
-      run: |
-        VERSION=v$(date +'%Y%m%d')-${GITHUB_SHA::8}
-        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-        echo "Using version tag: $VERSION"
         
     - name: Build and push Guest image
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@v2
       with:
         context: ./guest
         push: true
-        tags: |
-          ${{ env.DOCKER_HUB_USERNAME }}/${{ env.GUEST_IMAGE_NAME }}:latest
-          ${{ env.DOCKER_HUB_USERNAME }}/${{ env.GUEST_IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
-        cache-from: type=registry,ref=${{ env.DOCKER_HUB_USERNAME }}/${{ env.GUEST_IMAGE_NAME }}:buildcache
-        cache-to: type=registry,ref=${{ env.DOCKER_HUB_USERNAME }}/${{ env.GUEST_IMAGE_NAME }}:buildcache,mode=max
-        build-args: |
-          VERSION=${{ steps.version.outputs.VERSION }}
+        tags: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.GUEST_IMAGE_NAME }}:latest
         
     - name: Build and push Pro image
-      uses: docker/build-push-action@v4
+      uses: docker/build-push-action@v2
       with:
         context: ./pro
         push: true
-        tags: |
-          ${{ env.DOCKER_HUB_USERNAME }}/${{ env.PRO_IMAGE_NAME }}:latest
-          ${{ env.DOCKER_HUB_USERNAME }}/${{ env.PRO_IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}
-        cache-from: type=registry,ref=${{ env.DOCKER_HUB_USERNAME }}/${{ env.PRO_IMAGE_NAME }}:buildcache
-        cache-to: type=registry,ref=${{ env.DOCKER_HUB_USERNAME }}/${{ env.PRO_IMAGE_NAME }}:buildcache,mode=max
-        build-args: |
-          VERSION=${{ steps.version.outputs.VERSION }}
-          
-    - name: Save version tag for deployment
-      run: echo "${{ steps.version.outputs.VERSION }}" > version.txt
-      
-    - name: Upload version info
-      uses: actions/upload-artifact@v3
-      with:
-        name: version-info
-        path: version.txt
+        tags: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.PRO_IMAGE_NAME }}:latest
         
   deploy:
-    name: Deploy to Kubernetes
+    name: Deploy to Kubernetes (Minikube)
     needs: build
     runs-on: ubuntu-latest
     
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
-      
-    - name: Download version info
-      uses: actions/download-artifact@v3
-      with:
-        name: version-info
-        
-    - name: Set version variable
-      id: version
-      run: |
-        VERSION=$(cat version.txt)
-        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-        echo "Using version: $VERSION"
+      uses: actions/checkout@v2
       
     - name: Install kubectl
-      uses: azure/setup-kubectl@v3
+      uses: kubernetes-sigs/setup-kubectl@v1
       
-    - name: Set up kubeconfig
+    - name: Setup Minikube
+      uses: medyagh/setup-minikube@master
+      
+    - name: Update deployment files
       run: |
-        mkdir -p $HOME/.kube
-        echo "${{ secrets.KUBE_CONFIG }}" > $HOME/.kube/config
-        chmod 600 $HOME/.kube/config
-        
-    - name: Create namespace if not exists
-      run: |
-        kubectl get namespace ${{ env.K8S_NAMESPACE }} || kubectl create namespace ${{ env.K8S_NAMESPACE }}
-        
-    - name: Update Kubernetes config
-      run: |
-        # Update image tags in deployment files with versioned tags
-        sed -i "s|image:.*bhrigu-guest.*|image: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.GUEST_IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}|g" k8s/deployment.yaml
-        sed -i "s|image:.*bhrigu-pro.*|image: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.PRO_IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}|g" k8s/deployment.yaml
+        sed -i "s|image:.*bhrigu-guest.*|image: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.GUEST_IMAGE_NAME }}:latest|g" k8s/deployment.yaml
+        sed -i "s|image:.*bhrigu-pro.*|image: ${{ env.DOCKER_HUB_USERNAME }}/${{ env.PRO_IMAGE_NAME }}:latest|g" k8s/deployment.yaml
       
     - name: Deploy to Kubernetes
       run: |
-        kubectl apply -f k8s/pvcs.yaml -n ${{ env.K8S_NAMESPACE }}
-        kubectl apply -f k8s/deployment.yaml -n ${{ env.K8S_NAMESPACE }}
-        kubectl apply -f k8s/service.yaml -n ${{ env.K8S_NAMESPACE }}
-        kubectl apply -f k8s/ingress.yaml -n ${{ env.K8S_NAMESPACE }}
-
-    - name: Wait for deployment to be ready
-      run: |
-        kubectl rollout status deployment/bhrigu-guest -n ${{ env.K8S_NAMESPACE }} --timeout=300s
-        kubectl rollout status deployment/bhrigu-pro -n ${{ env.K8S_NAMESPACE }} --timeout=300s
+        kubectl apply -f k8s/pvcs.yaml
+        kubectl apply -f k8s/deployment.yaml
+        kubectl apply -f k8s/service.yaml
+        kubectl apply -f k8s/ingress.yaml
 
     - name: Verify deployment
       run: |
-        echo "==== Pods ===="
-        kubectl get pods -n ${{ env.K8S_NAMESPACE }}
-        echo "==== Services ===="
-        kubectl get svc -n ${{ env.K8S_NAMESPACE }}
-        echo "==== Ingress ===="
-        kubectl get ingress -n ${{ env.K8S_NAMESPACE }}
-        
-    - name: Check container health
-      run: |
-        echo "==== Guest Container Logs ===="
-        kubectl logs -n ${{ env.K8S_NAMESPACE }} -l app=bhrigu-guest --tail=20
-        echo "==== Pro Container Logs ===="
-        kubectl logs -n ${{ env.K8S_NAMESPACE }} -l app=bhrigu-pro --tail=20
-        
-    - name: Create Deployment Summary
-      run: |
-        echo "# Deployment Summary" > deployment-summary.md
-        echo "Deployed version: ${{ steps.version.outputs.VERSION }}" >> deployment-summary.md
-        echo "Timestamp: $(date -u)" >> deployment-summary.md
-        echo "## Container Images" >> deployment-summary.md
-        echo "- Guest: \`${{ env.DOCKER_HUB_USERNAME }}/${{ env.GUEST_IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}\`" >> deployment-summary.md
-        echo "- Pro: \`${{ env.DOCKER_HUB_USERNAME }}/${{ env.PRO_IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}\`" >> deployment-summary.md
-        echo "## Kubernetes Resources" >> deployment-summary.md
-        echo "### Pods" >> deployment-summary.md
-        echo "\`\`\`" >> deployment-summary.md
-        kubectl get pods -n ${{ env.K8S_NAMESPACE }} -o wide >> deployment-summary.md
-        echo "\`\`\`" >> deployment-summary.md
-        echo "### Services" >> deployment-summary.md
-        echo "\`\`\`" >> deployment-summary.md
-        kubectl get svc -n ${{ env.K8S_NAMESPACE }} >> deployment-summary.md
-        echo "\`\`\`" >> deployment-summary.md
-        
-    - name: Upload deployment summary
-      uses: actions/upload-artifact@v3
-      with:
-        name: deployment-summary
-        path: deployment-summary.md
+        kubectl get pods
+        kubectl get services
+        kubectl get ingress
