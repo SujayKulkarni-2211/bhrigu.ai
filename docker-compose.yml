@@ -1,0 +1,38 @@
+version: '3'
+
+services:
+  bhrigu-guest:
+    build: ./guest
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./guest/uploads:/app/uploads
+      - ./guest/models:/app/models
+      - ./guest/reports:/app/reports
+      - ./guest/app/app.db:/app/app/app.db
+    env_file:
+      - ./guest/.env
+    environment:
+      - PRO_SERVICE_URL=http://bhrigu-pro:5001
+    networks:
+      - bhrigu-network
+
+  bhrigu-pro:
+    build: ./pro
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./pro/uploads:/app/uploads
+      - ./pro/models:/app/models
+      - ./pro/reports:/app/reports
+      - ./pro/app/bhrigu_pro.db:/app/app/bhrigu_pro.db
+    env_file:
+      - ./pro/.env
+    environment:
+      - GUEST_SERVICE_URL=http://bhrigu-guest:5000
+    networks:
+      - bhrigu-network
+
+networks:
+  bhrigu-network:
+    driver: bridge

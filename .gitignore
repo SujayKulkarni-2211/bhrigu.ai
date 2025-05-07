@@ -65,4 +65,4 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
-docker-compose.yml
+* docker-compose.yml
