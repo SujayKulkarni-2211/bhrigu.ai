@@ -1,0 +1,62 @@
+<!-- app/templates/email/subscription_confirmation.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Subscription Confirmed</title>
+  <style>
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f7fa;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    .header {
+      text-align: center;
+      padding: 20px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .logo {
+      max-width: 150px;
+    }
+    .content {
+      padding: 30px 20px;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: #6c757d;
+      font-size: 14px;
+      border-top: 1px solid #eee;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://bhrigu.ai/static/images/logo.png" alt="Bhrigu AI Logo" class="logo" />
+      <h1 style="color: #4361ee;">Subscription Confirmed</h1>
+    </div>
+    <div class="content">
+      <p>Hello {{ user_name }},</p>
+      <p>Thank you for subscribing to Bhrigu AI. Your subscription is now active.</p>
+      <p>You can now enjoy uninterrupted access to our features and updates.</p>
+      <p>Best regards,<br />The Bhrigu AI Team</p>
+    </div>
+    <div class="footer">
+      &copy;  2025 Bhrigu AI. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>

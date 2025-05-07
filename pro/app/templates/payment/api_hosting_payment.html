@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}API Hosting - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view_experiment', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item active">API Hosting</li>
+                </ol>
+            </nav>
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary-light">
+                    <h4 class="mb-0">Model API Hosting</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5>Model: {{ model_run.model_type }}</h5>
+                        <p class="text-muted">Deploy your trained model as an API endpoint for real-time predictions</p>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> API hosting allows you to make real-time predictions with your trained model from any application via a simple REST API endpoint.
+                    </div>
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="feature-icon-small bg-primary-light text-primary me-3">
+                                    <i class="fas fa-cloud"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1">Cloud Deployment</h5>
+                                    <p class="text-muted mb-0">Instantly deploy your model to our secure cloud</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="feature-icon-small bg-primary-light text-primary me-3">
+                                    <i class="fas fa-key"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1">API Keys</h5>
+                                    <p class="text-muted mb-0">Secure authentication for your API requests</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="feature-icon-small bg-primary-light text-primary me-3">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1">10,000 Requests</h5>
+                                    <p class="text-muted mb-0">Monthly request limit with auto-scaling</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="feature-icon-small bg-primary-light text-primary me-3">
+                                    <i class="fas fa-chart-bar"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1">Usage Analytics</h5>
+                                    <p class="text-muted mb-0">Monitor your API usage and performance</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card bg-light mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">30-Day Hosting Plan</h5>
+                            <h2 class="display-6 fw-bold">₹{{ price }}</h2>
+                            <p class="text-muted">Deploy your model as an API for 30 days</p>
+                            
+                            <form action="{{ url_for('payment.process_api_hosting_payment', experiment_id=experiment.id, model_run_id=model_run.id) }}" method="post">
+                                <button type="submit" class="btn btn-primary mt-3">
+                                    <i class="fas fa-credit-card me-2"></i> Pay Now & Deploy
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div class="small text-muted">
+                        <p><i class="fas fa-info-circle me-1"></i> After payment, you'll receive API documentation and access keys for integration.</p>
+                        <p><i class="fas fa-lock me-1"></i> Secure payment processing. Your payment information is never stored on our servers.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <a href="{{ url_for('project.view_experiment', experiment_id=experiment.id) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Experiment
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

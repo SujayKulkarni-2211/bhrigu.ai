@@ -1,0 +1,76 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bhrigu-ingress
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  rules:
+  - host: bhrigu.local  # Replace with your actual domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: bhrigu-guest
+            port:
+              number: 80
+      - path: /pro
+        pathType: Prefix
+        backend:
+          service:
+            name: bhrigu-pro
+            port:
+              number: 80
+      - path: /login
+        pathType: Exact
+        backend:
+          service:
+            name: bhrigu-pro
+            port:
+              number: 80
+      - path: /register
+        pathType: Exact
+        backend:
+          service:
+            name: bhrigu-pro
+            port:
+              number: 80
+      - path: /dashboard
+        pathType: Prefix
+        backend:
+          service:
+            name: bhrigu-pro
+            port:
+              number: 80
+      - path: /project
+        pathType: Prefix
+        backend:
+          service:
+            name: bhrigu-pro
+            port:
+              number: 80
+      - path: /payment
+        pathType: Prefix
+        backend:
+          service:
+            name: bhrigu-pro
+            port:
+              number: 80
+      - path: /auth
+        pathType: Prefix
+        backend:
+          service:
+            name: bhrigu-pro
+            port:
+              number: 80
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: bhrigu-pro
+            port:
+              number: 80

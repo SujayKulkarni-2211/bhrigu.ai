@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Receipt - Bhrigu AI{% endblock %}
+
+{% block styles %}
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        body {
+            padding: 20px;
+            background-color: white !important;
+        }
+        .receipt-container {
+            border: none !important;
+            box-shadow: none !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="text-end mb-3 no-print">
+                <button class="btn btn-outline-primary" onclick="window.print()">
+                    <i class="fas fa-print me-2"></i> Print Receipt
+                </button>
+                <a href="{{ url_for('payment.transaction_history') }}" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Transactions
+                </a>
+            </div>
+            
+            <div class="card shadow-sm receipt-container">
+                <div class="card-body p-4">
+                    <div class="row mb-4">
+                        <div class="col-sm-6">
+                            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Bhrigu AI Logo" height="50" class="mb-3">
+                            <h4>Receipt</h4>
+                        </div>
+                        <div class="col-sm-6 text-sm-end">
+                            <h5 class="text-muted mb-1">Receipt #{{ transaction.transaction_id }}</h5>
+                            <p class="mb-0">Date: {{ transaction.created_at.strftime('%b %d, %Y') }}</p>
+                            <p class="mb-0">Time: {{ transaction.created_at.strftime('%I:%M %p') }}</p>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="row mb-4">
+                        <div class="col-sm-6">
+                            <h6 class="mb-3">Billed To:</h6>
+                            <p class="mb-0"><strong>{{ current_user.get_full_name() }}</strong></p>
+                            <p class="mb-0">{{ current_user.email }}</p>
+                            {% if current_user.organization %}
+                            <p class="mb-0">{{ current_user.organization }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-sm-6 text-sm-end">
+                            <h6 class="mb-3">Payment Information:</h6>
+                            <p class="mb-0">Method: {{ transaction.payment_method|capitalize }}</p>
+                            <p class="mb-0">Status: 
+                                {% if transaction.status == 'completed' %}
+                                <span class="badge bg-success">Completed</span>
+                                {% elif transaction.status == 'refunded' %}
+                                <span class="badge bg-warning text-dark">Refunded</span>
+                                {% elif transaction.status == 'failed' %}
+                                <span class="badge bg-danger">Failed</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ transaction.status|capitalize }}</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="table-responsive mb-4">
+                        <table class="table table-borderless">
+                            <thead class="border-bottom">
+                                <tr>
+                                    <th>Description</th>
+                                    <th class="text-end">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Pro Subscription</td>
+                                    <td class="text-end">₹{{ transaction.amount }}</td>
+                                </tr>
+                            </tbody>
+                            <tfoot class="border-top">
+                                <tr>
+                                    <th>Total</th>
+                                    <th class="text-end">₹{{ transaction.amount }}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <p class="text-muted small">
+                        This receipt confirms that payment has been successfully processed by Bhrigu AI. If you have any questions, please contact us at <a href="mailto:support@bhrigu.ai">support@bhrigu.ai</a>.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

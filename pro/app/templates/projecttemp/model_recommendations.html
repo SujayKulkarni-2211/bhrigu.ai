@@ -1,0 +1,556 @@
+{% extends "base.html" %}
+
+{% block title %}Model Recommendations - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Model Recommendations</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Recommended Models</h2>
+            <p class="text-muted">Step 3: Choose machine learning models to train based on our recommendations</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <button type="button" class="btn btn-outline-primary mb-3 mb-md-0" id="refreshRecommendations">
+                <i class="fas fa-sync-alt me-2"></i>Refresh Recommendations
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- AI Analysis -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-robot me-2 text-primary"></i>AI Analysis</h5>
+                        <a href="{{ url_for('project.gemini_recommendations', experiment_id=experiment.id) }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-magic me-1"></i>Get Detailed Analysis
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-light mb-4">
+                        <h6 class="alert-heading mb-2">Dataset Analysis</h6>
+                        <p class="mb-0">
+                            We've analyzed your <strong>{{ data_info.num_rows }} rows</strong> of data with 
+                            <strong>{{ data_info.numeric_columns|length }} numerical</strong> and 
+                            <strong>{{ data_info.categorical_columns|length }} categorical</strong> features.
+                            Based on your <strong>{{ experiment.problem_type }}</strong> problem,
+                            we recommend the following models:
+                        </p>
+                    </div>
+                    
+                    <div class="recommended-models">
+                        <div class="row">
+                            <!-- Classical Models -->
+                            <div class="col-12 mb-4">
+                                <h6 class="mb-3">Classical Machine Learning Models</h6>
+                                <div class="row">
+                                    <!-- Random Forest -->
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card model-card h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <div class="feature-icon-small bg-primary-light text-primary me-3">
+                                                        <i class="fas fa-tree"></i>
+                                                    </div>
+                                                    <h6 class="card-title mb-0">Random Forest</h6>
+                                                    <span class="badge bg-success ms-auto">98% Match</span>
+                                                </div>
+                                                <p class="card-text small">Ensemble model that builds multiple decision trees and merges their predictions. Good for handling non-linear relationships.</p>
+                                                <div class="mt-3">
+                                                    <a href="{{ url_for('project.select_model', experiment_id=experiment.id, algorithm='RandomForest') }}" 
+                                                       class="btn btn-sm btn-primary w-100">
+                                                        <i class="fas fa-plus-circle me-1"></i>Select Model
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Logistic Regression or Linear Regression -->
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card model-card h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <div class="feature-icon-small bg-info-light text-info me-3">
+                                                        <i class="fas fa-chart-line"></i>
+                                                    </div>
+                                                    {% if experiment.problem_type == 'classification' %}
+                                                    <h6 class="card-title mb-0">Logistic Regression</h6>
+                                                    {% else %}
+                                                    <h6 class="card-title mb-0">Linear Regression</h6>
+                                                    {% endif %}
+                                                    <span class="badge bg-success ms-auto">92% Match</span>
+                                                </div>
+                                                <p class="card-text small">
+                                                    {% if experiment.problem_type == 'classification' %}
+                                                    Simple model that works well for linearly separable classes. Good baseline and offers high interpretability.
+                                                    {% else %}
+                                                    Simple model that works well for linear relationships. Provides coefficient weights for easy interpretation.
+                                                    {% endif %}
+                                                </p>
+                                                <div class="mt-3">
+                                                    {% if experiment.problem_type == 'classification' %}
+                                                    <a href="{{ url_for('project.select_model', experiment_id=experiment.id, algorithm='LogisticRegression') }}" 
+                                                       class="btn btn-sm btn-primary w-100">
+                                                        <i class="fas fa-plus-circle me-1"></i>Select Model
+                                                    </a>
+                                                    {% else %}
+                                                    <a href="{{ url_for('project.select_model', experiment_id=experiment.id, algorithm='LinearRegression') }}" 
+                                                       class="btn btn-sm btn-primary w-100">
+                                                        <i class="fas fa-plus-circle me-1"></i>Select Model
+                                                    </a>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Gradient Boosting -->
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card model-card h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <div class="feature-icon-small bg-warning-light text-warning me-3">
+                                                        <i class="fas fa-bolt"></i>
+                                                    </div>
+                                                    <h6 class="card-title mb-0">Gradient Boosting</h6>
+                                                    <span class="badge bg-success ms-auto">95% Match</span>
+                                                </div>
+                                                <p class="card-text small">Powerful ensemble technique that builds models sequentially to correct previous errors. Good for complex datasets.</p>
+                                                <div class="mt-3">
+                                                    <a href="{{ url_for('project.select_model', experiment_id=experiment.id, algorithm='GradientBoosting') }}" 
+                                                       class="btn btn-sm btn-primary w-100">
+                                                        <i class="fas fa-plus-circle me-1"></i>Select Model
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Support Vector Machine -->
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card model-card h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <div class="feature-icon-small bg-danger-light text-danger me-3">
+                                                        <i class="fas fa-project-diagram"></i>
+                                                    </div>
+                                                    {% if experiment.problem_type == 'classification' %}
+                                                    <h6 class="card-title mb-0">SVM Classifier</h6>
+                                                    {% else %}
+                                                    <h6 class="card-title mb-0">SVM Regressor</h6>
+                                                    {% endif %}
+                                                    <span class="badge bg-warning ms-auto">85% Match</span>
+                                                </div>
+                                                <p class="card-text small">Effective for high-dimensional spaces and when classes are separable. Uses kernel tricks to handle non-linear boundaries.</p>
+                                                <div class="mt-3">
+                                                    {% if experiment.problem_type == 'classification' %}
+                                                    <a href="{{ url_for('project.select_model', experiment_id=experiment.id, algorithm='SVC') }}" 
+                                                       class="btn btn-sm btn-primary w-100">
+                                                        <i class="fas fa-plus-circle me-1"></i>Select Model
+                                                    </a>
+                                                    {% else %}
+                                                    <a href="{{ url_for('project.select_model', experiment_id=experiment.id, algorithm='SVR') }}" 
+                                                       class="btn btn-sm btn-primary w-100">
+                                                        <i class="fas fa-plus-circle me-1"></i>Select Model
+                                                    </a>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Neural Networks -->
+                            <div class="col-12 mb-4">
+                                <h6 class="mb-3">Neural Network Models</h6>
+                                <div class="row">
+                                    <!-- MLP -->
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card model-card h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <div class="feature-icon-small bg-primary-light text-primary me-3">
+                                                        <i class="fas fa-brain"></i>
+                                                    </div>
+                                                    <h6 class="card-title mb-0">Multilayer Perceptron</h6>
+                                                    <span class="badge bg-success ms-auto">90% Match</span>
+                                                </div>
+                                                <p class="card-text small">Basic neural network that can model complex non-linear relationships. Good for data with clear patterns.</p>
+                                                <div class="mt-3">
+                                                    <a href="{{ url_for('project.select_model', experiment_id=experiment.id, algorithm='MLP') }}" 
+                                                       class="btn btn-sm btn-primary w-100">
+                                                        <i class="fas fa-plus-circle me-1"></i>Select Model
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- LSTM -->
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card model-card h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <div class="feature-icon-small bg-info-light text-info me-3">
+                                                        <i class="fas fa-network-wired"></i>
+                                                    </div>
+                                                    <h6 class="card-title mb-0">LSTM Network</h6>
+                                                    <span class="badge bg-warning ms-auto">75% Match</span>
+                                                </div>
+                                                <p class="card-text small">Advanced neural network suited for sequential data with temporal patterns.</p>
+                                                <div class="mt-3">
+                                                    {% if is_pro %}
+                                                    <a href="{{ url_for('project.select_model', experiment_id=experiment.id, algorithm='LSTM') }}" 
+                                                       class="btn btn-sm btn-primary w-100">
+                                                        <i class="fas fa-plus-circle me-1"></i>Select Model
+                                                    </a>
+                                                    {% else %}
+                                                    <a href="{{ url_for('payment.upgrade_to_pro') }}" class="btn btn-sm btn-outline-secondary w-100">
+                                                        <i class="fas fa-crown me-1"></i>Pro Feature
+                                                    </a>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Quantum Models -->
+                            <div class="col-12">
+                                <h6 class="mb-3">Quantum Machine Learning <span class="badge bg-info ms-2">Cutting Edge</span></h6>
+                                <div class="row">
+                                    <!-- QSVM -->
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card model-card h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <div class="feature-icon-small bg-primary-light text-primary me-3">
+                                                        <i class="fas fa-atom"></i>
+                                                    </div>
+                                                    <h6 class="card-title mb-0">Quantum SVM</h6>
+                                                    <span class="badge bg-warning ms-auto">70% Match</span>
+                                                </div>
+                                                <p class="card-text small">Quantum computing enhanced SVM that can process complex feature spaces more efficiently.</p>
+                                                <div class="mt-3">
+                                                    {% if is_pro %}
+                                                    <a href="{{ url_for('project.select_model', experiment_id=experiment.id, algorithm='QSVM') }}" 
+                                                       class="btn btn-sm btn-primary w-100">
+                                                        <i class="fas fa-plus-circle me-1"></i>Select Model
+                                                    </a>
+                                                    {% else %}
+                                                    <a href="{{ url_for('payment.upgrade_to_pro') }}" class="btn btn-sm btn-outline-secondary w-100">
+                                                        <i class="fas fa-crown me-1"></i>Pro Feature
+                                                    </a>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- QNN -->
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card model-card h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex align-items-center mb-3">
+                                                    <div class="feature-icon-small bg-warning-light text-warning me-3">
+                                                        <i class="fas fa-microchip"></i>
+                                                    </div>
+                                                    <h6 class="card-title mb-0">Quantum Neural Net</h6>
+                                                    <span class="badge bg-warning ms-auto">65% Match</span>
+                                                </div>
+                                                <p class="card-text small">Combines quantum computing with neural networks for potentially improved performance on complex patterns.</p>
+                                                <div class="mt-3">
+                                                    {% if is_pro %}
+                                                    <a href="{{ url_for('project.select_model', experiment_id=experiment.id, algorithm='QNN') }}" 
+                                                       class="btn btn-sm btn-primary w-100">
+                                                        <i class="fas fa-plus-circle me-1"></i>Select Model
+                                                    </a>
+                                                    {% else %}
+                                                    <a href="{{ url_for('payment.upgrade_to_pro') }}" class="btn btn-sm btn-outline-secondary w-100">
+                                                        <i class="fas fa-crown me-1"></i>Pro Feature
+                                                    </a>
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Selected Models -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Your Selected Models</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" id="selectedModelsList">
+                        <div class="list-group-item text-center py-4" id="noModelsMessage">
+                            <i class="fas fa-robot fa-3x text-muted mb-3"></i>
+                            <h6>No models selected yet</h6>
+                            <p class="text-muted mb-0">Select models from the recommendations above to get started</p>
+                        </div>
+                        <!-- Selected models will be added here via JavaScript -->
+                    </div>
+                    <div class="p-3 d-none" id="continueButtonContainer">
+                        <div class="d-grid">
+                            <a href="" class="btn btn-success" id="continueButton">
+                                <i class="fas fa-play-circle me-2"></i>Train Selected Models
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Process Steps -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Process Steps</h5>
+                </div>
+                <div class="card-body">
+                    <div class="steps">
+                        <div class="step completed">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3 bg-success text-white">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Upload Dataset</h6>
+                                    <p class="text-muted mb-0 small">Completed</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step completed">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3 bg-success text-white">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Analyze Data</h6>
+                                    <p class="text-muted mb-0 small">Completed</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step active">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3">3</div>
+                                <div>
+                                    <h6 class="mb-1">Select Models</h6>
+                                    <p class="text-muted mb-0 small">Choose ML models to train</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step disabled">
+                            <div class="d-flex">
+                                <div class="process-step-circle me-3 bg-secondary">4</div>
+                                <div>
+                                    <h6 class="mb-1 text-muted">Train & Evaluate</h6>
+                                    <p class="text-muted mb-0 small">Train models and view results</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- K-fold Cross Validation -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Advanced Evaluation</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="feature-icon-small bg-primary-light text-primary me-3 mt-1">
+                            <i class="fas fa-code-branch"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-1">K-Fold Cross Validation</h6>
+                            <p class="text-muted small mb-3">Train and test models on multiple data splits for more robust evaluation</p>
+                            
+                            {% if has_k_fold %}
+                            <a href="{{ url_for('project.k_fold_evaluation', experiment_id=experiment.id) }}" class="btn btn-sm btn-primary">
+                                <i class="fas fa-check-circle me-1"></i>Enabled - Configure
+                            </a>
+                            {% else %}
+                            <a href="{{ url_for('project.k_fold_evaluation', experiment_id=experiment.id) }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-plus-circle me-1"></i>Add K-Fold Validation
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Model Selection Tips -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Selection Tips</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="mb-2"><i class="fas fa-lightbulb text-warning me-2"></i>Consider Model Diversity</h6>
+                        <p class="text-muted small mb-0">Select multiple model types to compare different approaches. Each algorithm has its strengths and weaknesses.</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="mb-2"><i class="fas fa-lightbulb text-warning me-2"></i>Start Simple</h6>
+                        <p class="text-muted small mb-0">Begin with simpler models like Random Forest or Logistic Regression before trying complex neural networks.</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="mb-2"><i class="fas fa-lightbulb text-warning me-2"></i>Dataset Size Matters</h6>
+                        <p class="text-muted small mb-0">Neural networks perform better with larger datasets. For small datasets, classical models often work best.</p>
+                    </div>
+                    <div>
+                        <h6 class="mb-2"><i class="fas fa-lightbulb text-warning me-2"></i>Quantum Models</h6>
+                        <p class="text-muted small mb-0">Quantum models are experimental and work best on specific types of classification problems with well-structured data.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Track selected models
+    const selectedModels = [];
+    
+    // Function to update the selected models UI
+    function updateSelectedModelsUI() {
+        const selectedModelsList = document.getElementById('selectedModelsList');
+        const noModelsMessage = document.getElementById('noModelsMessage');
+        const continueButtonContainer = document.getElementById('continueButtonContainer');
+        
+        // Clear list except for the no models message
+        const existingItems = selectedModelsList.querySelectorAll('.selected-model-item');
+        existingItems.forEach(item => item.remove());
+        
+        if (selectedModels.length === 0) {
+            noModelsMessage.classList.remove('d-none');
+            continueButtonContainer.classList.add('d-none');
+            return;
+        }
+        
+        // Hide no models message and show continue button
+        noModelsMessage.classList.add('d-none');
+        continueButtonContainer.classList.remove('d-none');
+        
+        // Add each selected model to the list
+        selectedModels.forEach(model => {
+            const listItem = document.createElement('div');
+            listItem.className = 'list-group-item selected-model-item';
+            listItem.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="feature-icon-small bg-${model.iconClass}-light text-${model.iconClass} me-3">
+                            <i class="fas fa-${model.icon}"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">${model.name}</h6>
+                            <p class="text-muted mb-0 small">${model.type}</p>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-model" data-algorithm="${model.algorithm}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            selectedModelsList.appendChild(listItem);
+        });
+        
+        // Add event listeners to remove buttons
+        document.querySelectorAll('.remove-model').forEach(button => {
+            button.addEventListener('click', function() {
+                const algorithm = this.getAttribute('data-algorithm');
+                const index = selectedModels.findIndex(model => model.algorithm === algorithm);
+                if (index !== -1) {
+                    selectedModels.splice(index, 1);
+                    updateSelectedModelsUI();
+                }
+            });
+        });
+        
+        // Update continue button
+        const continueButton = document.getElementById('continueButton');
+        continueButton.href = selectedModels.length > 0
+            ? "{{ url_for('project.view', experiment_id=experiment.id) }}"
+            : "#";
+    }
+    
+    // Add event listeners to model selection buttons
+    document.querySelectorAll('.model-card a.btn-primary').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const card = this.closest('.model-card');
+            const algorithmUrl = this.getAttribute('href');
+            const algorithm = algorithmUrl.split('/').pop();
+            const name = card.querySelector('.card-title').textContent.trim();
+            const icon = card.querySelector('.feature-icon-small i').className.replace('fas fa-', '');
+            const iconClass = card.querySelector('.feature-icon-small').className.split('text-')[1].split(' ')[0];
+            
+            // Determine model type
+            let type = 'Classical ML';
+            if (name.includes('Neural') || name.includes('MLP') || name.includes('LSTM')) {
+                type = 'Neural Network';
+            } else if (name.includes('Quantum')) {
+                type = 'Quantum ML';
+            }
+            
+            // Check if model is already selected
+            const existingIndex = selectedModels.findIndex(model => model.algorithm === algorithm);
+            if (existingIndex === -1) {
+                // Add to selected models
+                selectedModels.push({
+                    algorithm,
+                    name,
+                    icon,
+                    iconClass,
+                    type,
+                    url: algorithmUrl
+                });
+                
+                // Show success toast
+                showToast(`${name} added to selection`, 'success');
+            } else {
+                // Show warning toast
+                showToast(`${name} is already selected`, 'warning');
+            }
+            
+            // Update UI
+            updateSelectedModelsUI();
+        });
+    });
+    
+    // Function to show toast notification
+    function showToast(message, type = 'info') {
+        // You would implement a toast notification here
+        console.log(`Toast: ${type} - ${message}`);
+    }
+    
+    // Initialize the UI
+    updateSelectedModelsUI();
+    
+    // Refresh recommendations button
+    document.getElementById('refreshRecommendations').addEventListener('click', function() {
+        window.location.reload();
+    });
+</script>
+{% endblock %}

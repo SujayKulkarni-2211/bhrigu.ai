@@ -1,0 +1,48 @@
+<!-- app/templates/email/model_complete.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Model Training Complete</title>
+  <style>
+    /* Your CSS styles here */
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://bhrigu.ai/static/images/logo.png" alt="Bhrigu AI Logo" class="logo" />
+      <h1 style="color: #4361ee;">Model Training Complete</h1>
+    </div>
+    <div class="content">
+      <p>Hello {{ user_name }},</p>
+      <p>Your model "{{ model_name|default(experiment_name ~ ' (' ~ model_type ~ ')') }}" has completed training successfully!</p>
+      <p>You can now view the performance results and deploy the model if desired.</p>
+      <div style="text-align: center;">
+        <a href="{{ model_url|default('/dashboard') }}" class="button">View Model</a>
+      </div>
+      
+      <!-- Add a metrics summary -->
+      {% if metrics %}
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 20px;">
+        <h3 style="margin-top: 0;">Model Performance:</h3>
+        <ul style="padding-left: 20px;">
+          {% for key, value in metrics.items() %}
+            {% if key != 'problem_type' and (value is number) %}
+              <li><strong>{{ key|title }}</strong>: {{ "%.4f"|format(value) }}</li>
+            {% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      
+      <p>Completed at: {{ timestamp }}</p>
+      <p>Best regards,<br/>The Bhrigu AI Team</p>
+    </div>
+    <div class="footer">
+      &copy; 2025 Bhrigu AI. All rights reserved.
+    </div>
+  </div>
+</body>
+</html>

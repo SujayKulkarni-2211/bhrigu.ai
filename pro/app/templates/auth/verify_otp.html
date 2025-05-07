@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Verify OTP - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h4 class="card-title mb-0 text-center">Enter Verification Code</h4>
+                </div>
+                <div class="card-body p-4">
+                    <p class="text-center mb-4">We've sent a 6-digit verification code to your email. Please enter it below to continue.</p>
+                    
+                    <form method="POST" action="{{ url_for('auth.verify_otp') }}">
+                        <div class="mb-4">
+                            <label for="otp" class="form-label">One-Time Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                <input type="text" class="form-control text-center" id="otp" name="otp" 
+                                       inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required
+                                       placeholder="Enter 6-digit code" autocomplete="one-time-code">
+                            </div>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Verify & Sign In</button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <p>Didn't receive a code? <a href="{{ url_for('auth.login_with_otp') }}">Resend code</a></p>
+                        <p class="text-muted small">The code will expire in 10 minutes.</p>
+                    </div>
+                </div>
+                <div class="card-footer   text-center py-3">
+                    <p class="mb-0">Or try another method? <a href="{{ url_for('auth.login') }}">Back to login</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Auto-submit when all digits are entered
+    document.getElementById('otp').addEventListener('input', function(e) {
+        if (this.value.length === 6) {
+            this.form.submit();
+        }
+    });
+    
+    // Focus on OTP input when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('otp').focus();
+    });
+</script>
+{% endblock %}

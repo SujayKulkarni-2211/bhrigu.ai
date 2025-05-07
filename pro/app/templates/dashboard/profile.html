@@ -1,0 +1,256 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Profile</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Your Profile</h2>
+            <p class="text-muted">Manage your account information</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <!-- Profile Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body text-center p-4">
+                    {% if user.profile_image %}
+                        <img src="{{ url_for('static', filename=user.profile_image) }}" 
+                             alt="Profile" class="rounded-circle mb-3"
+                             style="width: 120px; height: 120px; object-fit: cover;">
+                    {% else %}
+                        <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                             style="width: 120px; height: 120px; font-size: 3rem; color: white;">
+                            {{ user.first_name[0] if user.first_name else '' }}{{ user.last_name[0] if user.last_name else '' }}
+                        </div>
+                    {% endif %}
+                    
+                    <h4 class="mb-1">{{ user.get_full_name() }}</h4>
+                    <p class="text-muted mb-3">{{ user.email }}</p>
+                    
+                    <div class="d-flex justify-content-center">
+                        {% if is_pro %}
+                            <span class="badge bg-primary px-3 py-2">
+                                <i class="fas fa-crown me-1"></i> Pro User
+                            </span>
+                        {% else %}
+                            <a href="{{ url_for('payment.upgrade_to_pro') }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-crown me-1"></i> Upgrade to Pro
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-footer bg-light">
+                    <div class="row text-center">
+                        <div class="col">
+                            <h5 class="mb-0">{{ active_experiments }}</h5>
+                            <small class="text-muted">Projects</small>
+                        </div>
+                        {% if is_pro %}
+                        <div class="col border-start">
+                            <h5 class="mb-0">{{ pro_days_remaining }}</h5>
+                            <small class="text-muted">Days Left</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Features Card -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Available Features</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div>
+                                <i class="fas fa-project-diagram me-2 text-primary"></i>
+                                Unlimited Projects
+                            </div>
+                            <span class="badge rounded-pill bg-{{ 'success' if is_pro else 'secondary' }}">
+                                {{ 'Enabled' if is_pro else 'Pro Only' }}
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div>
+                                <i class="fas fa-atom me-2 text-primary"></i>
+                                Quantum ML Models
+                            </div>
+                            <span class="badge rounded-pill bg-{{ 'success' if can_use_quantum else 'secondary' }}">
+                                {{ 'Enabled' if can_use_quantum else 'Pro Only' }}
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div>
+                                <i class="fas fa-code-branch me-2 text-primary"></i>
+                                K-Fold Cross Validation
+                            </div>
+                            <span class="badge rounded-pill bg-{{ 'success' if has_k_fold else 'secondary' }}">
+                                {{ 'Enabled' if has_k_fold else 'Add-On' }}
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <div>
+                                <i class="fas fa-server me-2 text-primary"></i>
+                                API Model Hosting
+                            </div>
+                            <span class="badge rounded-pill bg-{{ 'success' if has_api_hosting else 'secondary' }}">
+                                {{ 'Enabled' if has_api_hosting else 'Add-On' }}
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <!-- Account Information -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Account Information</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('dashboard.profile') }}" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="first_name" class="form-label">First Name</label>
+                                <input type="text" class="form-control" id="first_name" name="first_name" 
+                                       value="{{ user.first_name }}" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="last_name" class="form-label">Last Name</label>
+                                <input type="text" class="form-control" id="last_name" name="last_name" 
+                                       value="{{ user.last_name }}" required>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="organization" class="form-label">Organization (Optional)</label>
+                            <input type="text" class="form-control" id="organization" name="organization" 
+                                   value="{{ user.organization }}">
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" value="{{ user.email }}" disabled>
+                            <div class="form-text">Email address cannot be changed</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="profile_image" class="form-label">Profile Picture</label>
+                            <input class="form-control" type="file" id="profile_image" name="profile_image" accept="image/*">
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Update Profile</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- Security Settings -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Security Settings</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h6 class="mb-1">Password</h6>
+                            <p class="text-muted mb-0 small">Last changed: Never</p>
+                        </div>
+                        <form action="{{ url_for('dashboard.request_password_change') }}" method="POST">
+                            <button type="submit" class="btn btn-outline-primary">Change Password</button>
+                        </form>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">Two-Factor Authentication</h6>
+                            <p class="text-muted mb-0 small">Secure your account with OTP</p>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="twoFactorToggle">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Notification Preferences -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Notification Preferences</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="notifyCompletionToggle" 
+                               {{ 'checked' if user.notify_on_completion else '' }}>
+                        <label class="form-check-label" for="notifyCompletionToggle">
+                            Email me when model training completes
+                        </label>
+                    </div>
+                    
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="notifyErrorToggle"
+                               {{ 'checked' if user.notify_on_error else '' }}>
+                        <label class="form-check-label" for="notifyErrorToggle">
+                            Email me when errors occur during training
+                        </label>
+                    </div>
+                    
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="marketingToggle">
+                        <label class="form-check-label" for="marketingToggle">
+                            Receive product updates and tips
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Toggle notifications
+    document.getElementById('notifyCompletionToggle').addEventListener('change', function() {
+        updateNotificationPreference('completion', this.checked);
+    });
+    
+    document.getElementById('notifyErrorToggle').addEventListener('change', function() {
+        updateNotificationPreference('error', this.checked);
+    });
+    
+    function updateNotificationPreference(type, value) {
+        fetch('/api/update-notification-preference', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: type,
+                value: value
+            }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success toast or notification
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    }
+</script>
+{% endblock %}

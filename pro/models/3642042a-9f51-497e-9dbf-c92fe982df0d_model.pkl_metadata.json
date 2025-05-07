@@ -1,0 +1,58 @@
+{
+  "model_type": "classical",
+  "algorithm": "RandomForest",
+  "problem_type": "classification",
+  "params": {
+    "n_estimators": 100,
+    "max_depth": 10,
+    "min_samples_split": 2,
+    "min_samples_leaf": 1,
+    "criterion": "gini"
+  },
+  "metrics": {
+    "accuracy": 0.9848484848484849,
+    "precision": 1.0,
+    "recall": 0.9552238805970149,
+    "f1": 0.9770992366412213,
+    "roc_auc": 0.9973795146405378,
+    "problem_type": "classification"
+  },
+  "best_params": null,
+  "feature_importances": [
+    0.01635045607136003,
+    0.0037280991544925467,
+    0.1064156656357464,
+    0.06675822154180884,
+    0.008285786020460035,
+    0.03003285714666343,
+    0.007032815844537798,
+    0.020654304027568196,
+    0.021935893110852128,
+    0.07803476778649787,
+    0.20080337113137747,
+    0.1336663913473284,
+    0.06998273931732342,
+    0.014660850181347046,
+    0.008830146091923556,
+    0.0553438836814151,
+    0.03256177191213761,
+    0.030476234213243088,
+    0.029062189892071568,
+    0.029538167073202948,
+    0.035845388818642306
+  ],
+  "confusion_matrix_data": [
+    [
+      131,
+      0
+    ],
+    [
+      3,
+      64
+    ]
+  ],
+  "classification_report_data": "              precision    recall  f1-score   support\n\n           0       0.98      1.00      0.99       131\n           1       1.00      0.96      0.98        67\n\n    accuracy                           0.98       198\n   macro avg       0.99      0.98      0.98       198\nweighted avg       0.99      0.98      0.98       198\n",
+  "timestamp": "2025-05-05T14:13:12.285271",
+  "scaler_path": "C:\\Users\\sujay\\OneDrive\\Desktop\\bhrigu-ai\\pro\\models\\3642042a-9f51-497e-9dbf-c92fe982df0d_model.pkl_scaler.pkl",
+  "encoder_path": "C:\\Users\\sujay\\OneDrive\\Desktop\\bhrigu-ai\\pro\\models\\3642042a-9f51-497e-9dbf-c92fe982df0d_model.pkl_encoder.pkl"
+}

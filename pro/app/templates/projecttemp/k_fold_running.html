@@ -1,0 +1,478 @@
+{% extends "base.html" %}
+
+{% block title %}K-Fold Evaluation in Progress - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">K-Fold Evaluation</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">K-Fold Cross Validation in Progress</h2>
+            <p class="text-muted">Evaluating multiple models with {{ k_fold_value }}-fold cross validation</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Main Status Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Evaluation Status</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h5 class="mb-1">Evaluation in Progress</h5>
+                        <p class="text-muted" id="timeElapsed">Elapsed: 0 min 0 sec</p>
+                    </div>
+                    
+                    <div class="progress mb-3" style="height: 8px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                             style="width: 0%" id="overallProgress" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="fas fa-info-circle fa-lg"></i>
+                            </div>
+                            <div>
+                                <h6 class="alert-heading mb-1">K-Fold Evaluation Process</h6>
+                                <p class="mb-0">Your dataset is being split into {{ k_fold_value }} folds. Each model will be trained {{ k_fold_value }} times with different training and validation sets to provide more reliable performance metrics.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body py-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="feature-icon-small bg-primary-light text-primary me-3">
+                                            <i class="fas fa-code-branch"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">{{ k_fold_value }}-Fold Validation</h6>
+                                            <p class="text-muted small mb-0">Cross-validation strategy</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body py-3">
+                                    <div class="d-flex align-items-center">
+                                        <div class="feature-icon-small bg-success-light text-success me-3">
+                                            <i class="fas fa-layer-group"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0">{{ k_fold_runs|length }} Models</h6>
+                                            <p class="text-muted small mb-0">Being evaluated in parallel</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-4">
+                        <div>
+                            <span id="completedModelsCount">0</span> of {{ k_fold_runs|length }} models completed
+                        </div>
+                        <div>
+                            <button class="btn btn-outline-primary btn-sm" id="refreshStatusButton">
+                                <i class="fas fa-sync-alt me-1"></i>Refresh Status
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer   py-3">
+                    <div class="d-grid">
+                        <a href="{{ url_for('project.k_fold_results', experiment_id=experiment.id) }}" class="btn btn-primary" id="viewResultsButton" disabled>
+                            <i class="fas fa-chart-bar me-2"></i>View Results
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Models Progress Table -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Model Status</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Model</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Progress</th>
+                                </tr>
+                            </thead>
+                            <tbody id="modelStatusTableBody">
+                                {% for model_run in k_fold_runs %}
+                                <tr id="model-row-{{ model_run.id }}" data-model-id="{{ model_run.id }}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="feature-icon-small bg-{{ 'primary' if model_run.model_type == 'classical' else 'warning' if model_run.model_type == 'quantum' else 'info' }}-light text-{{ 'primary' if model_run.model_type == 'classical' else 'warning' if model_run.model_type == 'quantum' else 'info' }} me-2">
+                                                <i class="fas fa-{{ 'cogs' if model_run.model_type == 'classical' else 'atom' if model_run.model_type == 'quantum' else 'brain' }}"></i>
+                                            </div>
+                                            <span>{{ model_run.algorithm }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'primary' if model_run.model_type == 'classical' else 'warning' if model_run.model_type == 'quantum' else 'info' }}">
+                                            {{ model_run.model_type|capitalize }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="model-status badge bg-{{ 'primary' if model_run.status == 'training' else 'success' if model_run.status == 'completed' else 'danger' }}">
+                                            {{ model_run.status|capitalize }}
+                                        </span>
+                                    </td>
+                                    <td width="30%">
+                                        <div class="progress" style="height: 5px;">
+                                            <div class="progress-bar model-progress-bar bg-{{ 'primary' if model_run.model_type == 'classical' else 'warning' if model_run.model_type == 'quantum' else 'info' }}" 
+                                                 role="progressbar" style="width: 0%;" 
+                                                 aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Process Steps -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Process Steps</h5>
+                </div>
+                <div class="card-body">
+                    <div class="steps">
+                        <div class="step completed">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3 bg-success text-white">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Upload Dataset</h6>
+                                    <p class="text-muted mb-0 small">Completed</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step completed">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3 bg-success text-white">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Analyze Data</h6>
+                                    <p class="text-muted mb-0 small">Completed</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step completed">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3 bg-success text-white">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Configure K-Fold</h6>
+                                    <p class="text-muted mb-0 small">Completed</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step active">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3">4</div>
+                                <div>
+                                    <h6 class="mb-1">Run Evaluation</h6>
+                                    <p class="text-muted mb-0 small">In progress</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step disabled">
+                            <div class="d-flex">
+                                <div class="process-step-circle me-3 bg-secondary">5</div>
+                                <div>
+                                    <h6 class="mb-1 text-muted">View Results</h6>
+                                    <p class="text-muted mb-0 small">Compare model performance</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Activity Log -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Activity Log</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush" id="activityLogList">
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Evaluation Started</h6>
+                                <small class="text-muted" id="startTimeDisplay">{{ (now if 'now' in locals() else datetime.now()).strftime('%H:%M:%S') }}</small>
+                            </div>
+                            <p class="mb-1">{{ k_fold_value }}-fold evaluation initiated with {{ k_fold_runs|length }} models</p>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Dataset Split</h6>
+                                <small class="text-muted">Now</small>
+                            </div>
+                            <p class="mb-1">Dataset successfully divided into {{ k_fold_value }} folds for cross-validation</p>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Model Training</h6>
+                                <small class="text-muted">Now</small>
+                            </div>
+                            <p class="mb-1">Training {{ k_fold_runs|length }} models with cross-validation</p>
+                        </div>
+                        <!-- Additional log entries will be added dynamically -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Estimated Performance -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Estimated Time</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item px-0">
+                            <div class="row">
+                                <div class="col-7 text-muted">Estimated Total Time:</div>
+                                <div class="col-5 text-end" id="estimatedTotalTime">{{ k_fold_runs|length * 2 }} mins</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item px-0">
+                            <div class="row">
+                                <div class="col-7 text-muted">Elapsed Time:</div>
+                                <div class="col-5 text-end" id="elapsedTimeDisplay">0 mins</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item px-0">
+                            <div class="row">
+                                <div class="col-7 text-muted">Remaining Time:</div>
+                                <div class="col-5 text-end" id="remainingTimeDisplay">{{ k_fold_runs|length * 2 }} mins</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item px-0">
+                            <div class="row">
+                                <div class="col-7 text-muted">Completion:</div>
+                                <div class="col-5 text-end" id="completionTimeDisplay">-</div>
+                            </div>
+                        </li>
+                    </ul>
+                    
+                    <div class="text-center mt-3">
+                        <p class="text-muted small">You'll receive an email notification when the evaluation is complete</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Email Notification Modal -->
+<div class="modal fade" id="notificationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Email Notification</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Would you like to receive an email notification when the K-fold evaluation is complete?</p>
+                <div class="form-check form-switch mb-3">
+                    <input class="form-check-input" type="checkbox" id="emailNotificationSwitch" checked>
+                    <label class="form-check-label" for="emailNotificationSwitch">
+                        Send email notification
+                    </label>
+                </div>
+                <div id="emailNotificationForm">
+                    <div class="mb-3">
+                        <label for="notificationEmail" class="form-label">Email address</label>
+                        <input type="email" class="form-control" id="notificationEmail" value="{{ current_user.email }}">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveNotificationButton">Save preferences</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Track start time
+    const startTime = new Date();
+    
+    // Model status tracking
+    const totalModels = {{ k_fold_runs|length }};
+    let completedModels = 0;
+    
+    // Function to update elapsed time
+    function updateElapsedTime() {
+        const now = new Date();
+        const elapsedMs = now - startTime;
+        const minutes = Math.floor(elapsedMs / 60000);
+        const seconds = Math.floor((elapsedMs % 60000) / 1000);
+        
+        document.getElementById('timeElapsed').textContent = `Elapsed: ${minutes} min ${seconds} sec`;
+        document.getElementById('elapsedTimeDisplay').textContent = `${minutes} mins`;
+        
+        // Update remaining time
+        const estimatedTotalMins = totalModels * 2; // 2 minutes per model as a rough estimate
+        const elapsedMins = minutes + (seconds / 60);
+        const remainingMins = Math.max(0, estimatedTotalMins - elapsedMins);
+        document.getElementById('remainingTimeDisplay').textContent = `${Math.round(remainingMins)} mins`;
+        
+        // Calculate completion time
+        const completionTime = new Date(startTime.getTime() + (estimatedTotalMins * 60000));
+        const hours = completionTime.getHours().toString().padStart(2, '0');
+        const mins = completionTime.getMinutes().toString().padStart(2, '0');
+        document.getElementById('completionTimeDisplay').textContent = `${hours}:${mins}`;
+    }
+    
+    // Update timer every second
+    setInterval(updateElapsedTime, 1000);
+    
+    // Function to check model status
+    function checkModelStatus() {
+        // Simulate random progress updates
+        // In a real app, this would use AJAX to check actual status from the server
+        const modelRows = document.querySelectorAll('#modelStatusTableBody tr');
+        
+        modelRows.forEach(row => {
+            const modelId = row.getAttribute('data-model-id');
+            const statusBadge = row.querySelector('.model-status');
+            const progressBar = row.querySelector('.model-progress-bar');
+            
+            // Get current progress if it exists
+            let currentProgress = parseInt(progressBar.getAttribute('aria-valuenow') || 0);
+            
+            // Randomly increment progress
+            if (currentProgress < 100) {
+                // Increment by 5-15% randomly
+                currentProgress += Math.floor(Math.random() * 10) + 5;
+                if (currentProgress >= 100) {
+                    currentProgress = 100;
+                    statusBadge.textContent = 'Completed';
+                    statusBadge.classList.remove('bg-primary');
+                    statusBadge.classList.add('bg-success');
+                    
+                    // Add log entry
+                    addLogEntry(`${row.querySelector('td:first-child span').textContent} Completed`, 'Model training and cross-validation completed successfully');
+                    
+                    // Increment completed models counter
+                    completedModels++;
+                }
+                
+                // Update progress bar
+                progressBar.style.width = `${currentProgress}%`;
+                progressBar.setAttribute('aria-valuenow', currentProgress);
+            }
+        });
+        
+        // Update completed models count
+        document.getElementById('completedModelsCount').textContent = completedModels;
+        
+        // Update overall progress
+        const overallProgress = Math.round((completedModels / totalModels) * 100);
+        document.getElementById('overallProgress').style.width = `${overallProgress}%`;
+        document.getElementById('overallProgress').setAttribute('aria-valuenow', overallProgress);
+        
+        // Enable View Results button if all models complete
+        if (completedModels === totalModels) {
+            document.getElementById('viewResultsButton').removeAttribute('disabled');
+            addLogEntry('Evaluation Complete', 'All models have been evaluated with {{ k_fold_value }}-fold cross validation');
+        }
+    }
+    
+    // Function to add a log entry
+    function addLogEntry(title, message) {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        const seconds = now.getSeconds().toString().padStart(2, '0');
+        const timeString = `${hours}:${minutes}:${seconds}`;
+        
+        const logList = document.getElementById('activityLogList');
+        const logEntry = document.createElement('div');
+        logEntry.className = 'list-group-item';
+        logEntry.innerHTML = `
+            <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">${title}</h6>
+                <small class="text-muted">${timeString}</small>
+            </div>
+            <p class="mb-1">${message}</p>
+        `;
+        
+        logList.appendChild(logEntry);
+    }
+    
+    // Manual refresh button
+    document.getElementById('refreshStatusButton').addEventListener('click', function() {
+        checkModelStatus();
+        
+        // Visual feedback
+        this.innerHTML = '<i class="fas fa-sync-alt fa-spin me-1"></i>Refreshing...';
+        this.disabled = true;
+        
+        setTimeout(() => {
+            this.innerHTML = '<i class="fas fa-sync-alt me-1"></i>Refresh Status';
+            this.disabled = false;
+        }, 1000);
+    });
+    
+    // Initial status check
+    checkModelStatus();
+    
+    // Set up periodic status checks (every 5 seconds)
+    const statusInterval = setInterval(checkModelStatus, 5000);
+    
+    // Email notification modal
+    document.getElementById('emailNotificationSwitch').addEventListener('change', function() {
+        document.getElementById('emailNotificationForm').style.display = this.checked ? 'block' : 'none';
+    });
+    
+    document.getElementById('saveNotificationButton').addEventListener('click', function() {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('notificationModal'));
+        modal.hide();
+        
+        if (document.getElementById('emailNotificationSwitch').checked) {
+            // Show a toast notification
+            alert('Notification settings saved. You will receive an email when the evaluation is complete.');
+        }
+    });
+    
+    // In a real app, you might show the notification modal after page load
+    // let notificationModal = new bootstrap.Modal(document.getElementById('notificationModal'));
+    // notificationModal.show();
+</script>
+{% endblock %}

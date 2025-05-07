@@ -1,0 +1,206 @@
+<!-- app/templates/select_model.html -->
+{% extends 'base.html' %}
+
+{% block title %}Select Model - Bhrigu.ai{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.upload') }}">Upload</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.analyze', experiment_id=experiment.id) }}">Analyze</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Select Model</li>
+            </ol>
+        </nav>
+        
+        <h2 class="mb-4">
+            <i class="fas fa-robot text-primary me-2"></i> Model Selection
+        </h2>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Recommended Models -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary-light py-3">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-star me-2"></i> Recommended Models
+                </h3>
+            </div>
+            <div class="card-body">
+                <p class="lead">Based on your dataset, we recommend these models:</p>
+                
+                <div class="row g-3">
+                    {% for model in recommendations %}
+                    <div class="col-md-6">
+                        <!-- In the model card template, add this condition -->
+                        <div class="card h-100 border {% if loop.index == 1 %}border-primary{% else %}border-light{% endif %} hover-card model-card">
+                            <div class="card-body position-relative">
+                                {% if model.disabled %}
+                                <div class="position-absolute top-0 end-0 p-2">
+                                    <span class="badge bg-secondary">{{ model.disabled_reason }}</span>
+                                </div>
+                                {% elif loop.index == 1 %}
+                                <div class="position-absolute top-0 end-0 p-2">
+                                    <span class="badge bg-primary">Top Pick</span>
+                                </div>
+                                {% endif %}
+                                
+                                <h4 class="card-title">{{ model.algorithm }}</h4>
+                                <p class="card-text text-muted mb-2">{{ model.reason }}</p>
+                                
+                                <div class="progress mb-3" style="height: 8px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" style="width: {{ model.confidence * 100 }}%;" aria-valuenow="{{ model.confidence * 100 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">Confidence: {{ "%.0f"|format(model.confidence * 100) }}%</small>
+                                    <form method="post">
+                                        <input type="hidden" name="algorithm" value="{{ model.algorithm }}">
+                                        <input type="hidden" name="model_type" value="{{ model.model_type }}">
+                                        <button type="submit" class="btn btn-sm {% if loop.index == 1 %}btn-primary{% else %}btn-outline-primary{% endif %}" {% if model.disabled %}disabled{% endif %}>
+                                            Select
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- All Available Models -->
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-header bg-primary-light py-3">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-list me-2"></i> All Available Models
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Algorithm</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for algorithm, info in available_models.items() %}
+                            <tr>
+                                <td>{{ algorithm }}</td>
+                                <td>
+                                    <span class="badge bg-info">{{ info.model_type|capitalize }}</span>
+                                </td>
+                                <td>
+                                    {% if algorithm == 'RandomForest' or algorithm == 'RandomForestRegressor' %}
+                                    An ensemble of decision trees that handles non-linear relationships well.
+                                    {% elif algorithm == 'LogisticRegression' %}
+                                    A linear model for classification tasks that works well with linearly separable data.
+                                    {% elif algorithm == 'LinearRegression' %}
+                                    A simple model that assumes a linear relationship between inputs and output.
+                                    {% elif algorithm == 'SVC' or algorithm == 'SVR' %}
+                                    Support Vector Machine that works well for complex classification boundaries.
+                                    {% elif algorithm == 'DecisionTree' or algorithm == 'DecisionTreeRegressor' %}
+                                    A tree-based model that makes decisions based on feature thresholds.
+                                    {% elif algorithm == 'KNN' %}
+                                    K-Nearest Neighbors predicts based on closest training examples.
+                                    {% else %}
+                                    A machine learning algorithm for {{ experiment.problem_type }} tasks.
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form method="post">
+                                        <input type="hidden" name="algorithm" value="{{ algorithm }}">
+                                        <input type="hidden" name="model_type" value="{{ info.model_type }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-primary">
+                                            Select
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Experiment Info Sidebar -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 sticky-top" style="top: 80px;">
+            <div class="card-header bg-primary-light py-3">
+                <h3 class="card-title mb-0">Experiment Summary</h3>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h5>Dataset</h5>
+                    <p class="text-muted mb-0">{{ experiment.dataset_original_name }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h5>Problem Type</h5>
+                    <p class="text-muted mb-0">{{ experiment.problem_type|capitalize }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h5>Target Column</h5>
+                    <p class="text-muted mb-0">{{ experiment.target_column }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h5>Selected Features</h5>
+                    <div class="bg-light p-2 rounded" style="max-height: 150px; overflow-y: auto;">
+                        <ul class="list-unstyled mb-0">
+                            {% for feature in experiment.feature_columns|from_json %}
+                            <li><small>{{ feature }}</small></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info" role="alert">
+                    <div class="d-flex">
+                        <div class="me-3">
+                            <i class="fas fa-info-circle fa-2x"></i>
+                        </div>
+                        <div>
+                            <h5 class="alert-heading">How to choose?</h5>
+                            <p class="mb-0">Different models have different strengths. Our recommendations are based on your data characteristics, but feel free to experiment!</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <p class="mb-2"><strong>Next steps:</strong></p>
+                    <ol>
+                        <li>Select a model from the recommendations</li>
+                        <li>Configure hyperparameters (optional)</li>
+                        <li>Train your model and view results</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add custom filter to parse JSON
+    Jinja.addFilter('from_json', function(value) {
+        try {
+            return JSON.parse(value);
+        } catch (e) {
+            return [];
+        }
+    });
+</script>
+{% endblock %}

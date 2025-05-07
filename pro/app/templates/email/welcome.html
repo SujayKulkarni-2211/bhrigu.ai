@@ -1,0 +1,147 @@
+<!-- app/templates/email/welcome.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Bhrigu AI</title>
+    <style>
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .logo {
+            max-width: 150px;
+            height: auto;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .button {
+            display: inline-block;
+            background-color: #4361ee;
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 12px 24px;
+            margin: 20px 0;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .button:hover {
+            background-color: #3a56d4;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 14px;
+            border-top: 1px solid #eee;
+        }
+        .help-text {
+            font-size: 14px;
+            color: #6c757d;
+            margin-top: 20px;
+        }
+        .feature-list {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .feature-list ul {
+            padding-left: 25px;
+            margin: 10px 0;
+        }
+        .feature-list li {
+            margin-bottom: 8px;
+        }
+        .highlight {
+            color: #4361ee;
+            font-weight: 600;
+        }
+        .social-links {
+            margin-top: 15px;
+        }
+        .social-links a {
+            display: inline-block;
+            margin: 0 10px;
+            color: #4361ee;
+            text-decoration: none;
+        }
+        @media only screen and (max-width: 600px) {
+            .container {
+                width: 100%;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://bhrigu.ai/static/images/logo.png" alt="Bhrigu AI Logo" class="logo">
+            <h1 style="color: #4361ee;">Welcome to Bhrigu AI!</h1>
+        </div>
+        <div class="content">
+            <p>Hello {{ user_name }},</p>
+            <p>Thank you for joining Bhrigu AI! We're excited to have you on board. Your account has been successfully created and is ready to use.</p>
+            
+            <div style="text-align: center;">
+                <a href="https://bhrigu.ai/dashboard" class="button">Go to Dashboard</a>
+            </div>
+            
+            <p>With Bhrigu AI, you can:</p>
+            
+            <div class="feature-list">
+                <ul>
+                    <li><span class="highlight">Build powerful ML models</span> without writing a single line of code</li>
+                    <li><span class="highlight">Analyze datasets</span> with automated preprocessing and feature engineering</li>
+                    <li><span class="highlight">Train and evaluate</span> multiple models to find the best performer</li>
+                    <li><span class="highlight">Deploy and manage</span> your models via robust APIs</li>
+                    <li><span class="highlight">Collaborate</span> with your team on ML projects</li>
+                </ul>
+            </div>
+            
+            <p>If you're new to AutoML, check out our <a href="https://bhrigu.ai/getting-started" style="color: #4361ee;">Getting Started Guide</a> to learn the basics.</p>
+            
+            <p>We're constantly improving our platform based on user feedback. If you have any questions, suggestions, or encounter any issues, please don't hesitate to reach out to our support team.</p>
+            
+            <p>Best regards,<br>The Bhrigu AI Team</p>
+            
+            <div class="help-text">
+                <p>Need help? Contact us at <a href="mailto:support@bhrigu.ai">support@bhrigu.ai</a></p>
+                <div class="social-links">
+                    <a href="https://twitter.com/bhriguai">Twitter</a> |
+                    <a href="https://linkedin.com/company/bhriguai">LinkedIn</a> |
+                    <a href="https://github.com/bhriguai">GitHub</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            <p class="mb-0">&copy; 2025 Bhrigu AI. All rights reserved.</p>
+            <p>
+                <a href="https://bhrigu.ai/privacy" style="color: #4361ee; text-decoration: none;">Privacy Policy</a> | 
+                <a href="https://bhrigu.ai/terms" style="color: #4361ee; text-decoration: none;">Terms of Service</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

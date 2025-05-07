@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Hyperparameter Choice - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Hyperparameter Choice</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">{{ model_run.algorithm }} Configuration</h2>
+            <p class="text-muted">Choose how to configure hyperparameters for your model</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Choice Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Configuration Options</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex">
+                            <i class="fas fa-info-circle fa-lg me-3 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1">About Hyperparameters</h6>
+                                <p class="mb-0">Hyperparameters control how the model learns from your data. They can significantly impact model performance. You can either manually configure them or use automatic tuning to find optimal values.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-4 mb-md-0">
+                            <div class="card hover-card h-100">
+                                <div class="card-body text-center p-4">
+                                    <div class="feature-icon bg-primary-light text-primary mx-auto mb-3">
+                                        <i class="fas fa-sliders-h"></i>
+                                    </div>
+                                    <h5 class="mb-3">Manual Configuration</h5>
+                                    <p class="text-muted mb-4">Manually set hyperparameters based on your domain knowledge or previous experience.</p>
+                                    <div class="d-grid">
+                                        <a href="{{ url_for('project.configure_hyperparameters', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-outline-primary">
+                                            <i class="fas fa-cog me-2"></i>Configure Manually
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-light">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span><i class="fas fa-clock me-1"></i> Faster</span>
+                                        <span><i class="fas fa-brain me-1"></i> Uses Your Expertise</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card hover-card h-100">
+                                <div class="card-body text-center p-4">
+                                    <div class="feature-icon bg-success-light text-success mx-auto mb-3">
+                                        <i class="fas fa-robot"></i>
+                                    </div>
+                                    <h5 class="mb-3">Automatic Tuning</h5>
+                                    <p class="text-muted mb-4">Let the system find optimal hyperparameters using cross-validation and search algorithms.</p>
+                                    <div class="d-grid">
+                                        <a href="{{ url_for('project.tune_hyperparameters', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-outline-success">
+                                            <i class="fas fa-magic me-2"></i>Tune Automatically
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-light">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span><i class="fas fa-hourglass-half me-1"></i> Takes Longer</span>
+                                        <span><i class="fas fa-chart-line me-1"></i> Often Better Results</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Algorithm Information Card -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Algorithm Information</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row align-items-center mb-4">
+                        <div class="col-auto">
+                            <div class="feature-icon bg-{{ 'primary' if model_run.model_type == 'classical' else 'warning' if model_run.model_type == 'quantum' else 'info' }}-light text-{{ 'primary' if model_run.model_type == 'classical' else 'warning' if model_run.model_type == 'quantum' else 'info' }} me-3">
+                                <i class="fas fa-{% if model_run.model_type == 'classical' %}cogs{% elif model_run.model_type == 'quantum' %}atom{% else %}brain{% endif %}"></i>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <h4 class="mb-1">{{ model_run.algorithm }}</h4>
+                            <p class="text-muted mb-0">{{ model_run.model_type|capitalize }} Model</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="mb-3">Algorithm Description</h6>
+                        <p>
+                            {% if 'RandomForest' in model_run.algorithm %}
+                            Random Forest is an ensemble learning method that builds multiple decision trees and merges their predictions. It's robust against overfitting and can handle both classification and regression tasks effectively.
+                            
+                            {% elif 'LogisticRegression' in model_run.algorithm %}
+                            Logistic Regression is a linear model for classification that estimates probabilities using a logistic function. It's simple, interpretable, and works well for linearly separable data.
+                            
+                            {% elif 'LinearRegression' in model_run.algorithm %}
+                            Linear Regression is a simple yet powerful regression model that assumes a linear relationship between inputs and the target variable. It's highly interpretable and serves as a good baseline.
+                            
+                            {% elif 'GradientBoosting' in model_run.algorithm %}
+                            Gradient Boosting builds models sequentially, with each new model correcting errors made by previous ones. It often provides high accuracy but requires careful tuning to prevent overfitting.
+                            
+                            {% elif 'SVM' in model_run.algorithm or 'SVC' in model_run.algorithm or 'SVR' in model_run.algorithm %}
+                            Support Vector Machine finds an optimal hyperplane to separate classes (for classification) or fit data (for regression). It's effective in high-dimensional spaces and with complex decision boundaries.
+                            
+                            {% elif 'Tree' in model_run.algorithm %}
+                            Decision Tree creates a model that predicts the target by learning simple decision rules from data features. It's intuitive and easy to visualize but may overfit without proper constraints.
+                            
+                            {% elif 'KNN' in model_run.algorithm or 'Neighbors' in model_run.algorithm %}
+                            K-Nearest Neighbors makes predictions based on the majority class (classification) or average (regression) of the k nearest training examples. It's non-parametric and works well with well-clustered data.
+                            
+                            {% elif 'MLP' in model_run.algorithm %}
+                            Multi-Layer Perceptron is a neural network with multiple layers of nodes. It can learn non-linear patterns and is capable of handling complex relationships in data.
+                            
+                            {% elif model_run.algorithm in ['RNN', 'LSTM', 'GRU'] %}
+                            Recurrent Neural Networks ({{ model_run.algorithm }}) are designed to recognize patterns in sequences. They're particularly powerful for time series, text, and other sequential data.
+                            
+                            {% elif 'QSV' in model_run.algorithm %}
+                            Quantum Support Vector Machine leverages quantum computing principles to potentially solve classification problems more efficiently than classical methods for certain datasets.
+                            
+                            {% elif 'QNN' in model_run.algorithm %}
+                            Quantum Neural Network combines quantum computing with neural network architectures, potentially providing advantages for specific types of problems and datasets.
+                            
+                            {% else %}
+                            {{ model_run.algorithm }} is a machine learning algorithm with specific hyperparameters that control its learning behavior. Optimizing these parameters can significantly improve model performance.
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <div class="alert alert-light">
+                        <h6 class="mb-2">Hyperparameter Tuning Recommendation</h6>
+                        <p class="mb-0">
+                            {% if model_run.model_type == 'quantum' %}
+                            <i class="fas fa-info-circle me-2"></i> For quantum models, manual configuration is recommended as tuning can be computationally intensive.
+                            
+                            {% elif model_run.model_type == 'neural' %}
+                            <i class="fas fa-magic me-2"></i> For neural networks, automatic tuning often finds better architectures than manual selection.
+                            
+                            {% elif 'RandomForest' in model_run.algorithm or 'GradientBoosting' in model_run.algorithm %}
+                            <i class="fas fa-magic me-2"></i> For ensemble methods like {{ model_run.algorithm }}, automatic tuning is highly recommended to find optimal tree parameters.
+                            
+                            {% else %}
+                            <i class="fas fa-balance-scale me-2"></i> For {{ model_run.algorithm }}, both methods can be effective. If you're not sure about parameter values, automatic tuning is recommended.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Experiment Info Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Experiment Information</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Project:</div>
+                                <div class="col-7 fw-medium">{{ experiment.name }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Problem Type:</div>
+                                <div class="col-7">{{ experiment.problem_type|capitalize }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Target Column:</div>
+                                <div class="col-7">{{ experiment.target_column }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Features:</div>
+                                <div class="col-7">{{ json.loads(experiment.feature_columns)|length }} selected</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Dataset Size:</div>
+                                <div class="col-7">
+                                    {% if experiment.dataset_info %}
+                                    {{ experiment.dataset_info.num_rows }} rows
+                                    {% else %}
+                                    N/A
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Model:</div>
+                                <div class="col-7">
+                                    {{ model_run.algorithm }}
+                                    <span class="badge bg-light text-dark ms-1">{{ model_run.model_type|capitalize }}</span>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Pro User Card -->
+            {% if current_user.is_pro %}
+            <div class="card shadow-sm mb-4 bg-primary-light">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="feature-icon-small bg-primary text-white me-3">
+                            <i class="fas fa-crown"></i>
+                        </div>
+                        <h5 class="mb-0 text-primary">Pro User Benefits</h5>
+                    </div>
+                    <p class="text-muted mb-3">As a Pro user, you have access to:</p>
+                    <ul class="mb-0">
+                        <li class="mb-2">Advanced hyperparameter tuning with Bayesian optimization</li>
+                        <li class="mb-2">Longer tuning duration for better results</li>
+                        <li class="mb-2">Detailed tuning reports with visualization</li>
+                        <li>Priority computing resources</li>
+                    </ul>
+                </div>
+            </div>
+            {% else %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0"><i class="fas fa-crown text-warning me-2"></i>Pro Features</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Upgrade to Pro to unlock:</p>
+                    <ul class="mb-3">
+                        <li class="mb-2">Advanced hyperparameter tuning algorithms</li>
+                        <li class="mb-2">Extended computation time for better results</li>
+                        <li class="mb-2">Detailed tuning reports with visualization</li>
+                        <li class="mb-2">Priority computing resources</li>
+                    </ul>
+                    <div class="d-grid">
+                        <a href="{{ url_for('project.upgrade_to_pro', experiment_id=experiment.id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-crown me-2"></i>Upgrade to Pro
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Tips Card -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb text-warning me-2"></i>Hyperparameter Tips</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="mb-2">Automatic Tuning</h6>
+                        <p class="text-muted small mb-0">For best results, allow automatic tuning to run for at least 10-15 minutes. The system will explore different parameter combinations to optimize performance.</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="mb-2">Manual Configuration</h6>
+                        <p class="text-muted small mb-0">If you have domain knowledge or prior experience with the algorithm, manual configuration can be faster and may incorporate domain-specific insights.</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="mb-2">Small Datasets</h6>
+                        <p class="text-muted small mb-0">For small datasets (less than 1000 rows), consider using cross-validation during tuning to get more reliable performance estimates.</p>
+                    </div>
+                    <div>
+                        <h6 class="mb-2">Complex Models</h6>
+                        <p class="text-muted small mb-0">For complex models (neural networks, ensemble methods), automatic tuning almost always outperforms manual configuration unless you're an expert.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Any additional scripting can go here
+    });
+</script>
+{% endblock %}

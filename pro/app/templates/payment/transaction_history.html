@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+
+{% block title %}Transaction History - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <h1 class="mb-4">Transaction History</h1>
+            
+            {% if active_subscriptions %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary-light">
+                    <h5 class="mb-0">Active Subscriptions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Plan</th>
+                                    <th>Start Date</th>
+                                    <th>Renewal Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for subscription in active_subscriptions %}
+                                <tr>
+                                    <td>
+                                        {% if subscription.plan_type == 'pro' %}
+                                        <span class="badge bg-primary">Pro {{ subscription.billing_cycle|capitalize }}</span>
+                                        {% elif subscription.plan_type == 'k_fold' %}
+                                        <span class="badge bg-info">K-Fold Cross-Validation</span>
+                                        {% elif subscription.plan_type == 'api_hosting' %}
+                                        <span class="badge bg-success">API Hosting</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ subscription.start_date.strftime('%b %d, %Y') }}</td>
+                                    <td>
+                                        {% if subscription.end_date %}
+                                        {{ subscription.end_date.strftime('%b %d, %Y') }}
+                                        {% else %}
+                                        <span class="text-muted">N/A</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>₹{{ subscription.amount }}</td>
+                                    <td>
+                                        <span class="badge bg-success">Active</span>
+                                    </td>
+                                    <td>
+                                        {% if subscription.is_recurring and subscription.auto_renew %}
+                                        <form action="{{ url_for('payment.cancel_subscription') }}" method="post" class="d-inline">
+                                            <input type="hidden" name="subscription_id" value="{{ subscription.id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Cancel</button>
+                                        </form>
+                                        {% elif subscription.end_date and subscription.plan_type == 'pro' %}
+                                        <form action="{{ url_for('payment.renew_subscription', subscription_id=subscription.id) }}" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">Renew</button>
+                                        </form>
+                                        {% else %}
+                                        <span class="text-muted">-</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary-light">
+                    <h5 class="mb-0">Transactions</h5>
+                </div>
+                <div class="card-body">
+                    {% if transactions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Description</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for transaction in transactions %}
+                                <tr>
+                                    <td>{{ transaction.created_at.strftime('%b %d, %Y') }}</td>
+                                    <td>{{ transaction.description }}</td>
+                                    <td>₹{{ transaction.amount }}</td>
+                                    <td>
+                                        {% if transaction.status == 'completed' %}
+                                        <span class="badge bg-success">Completed</span>
+                                        {% elif transaction.status == 'refunded' %}
+                                        <span class="badge bg-warning text-dark">Refunded</span>
+                                        {% elif transaction.status == 'failed' %}
+                                        <span class="badge bg-danger">Failed</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">{{ transaction.status|capitalize }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('payment.view_receipt', transaction_id=transaction.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-file-invoice me-1"></i> Receipt
+                                        </a>
+                                        
+                                        {% if transaction.status == 'completed' and not transaction.refund_id and (transaction.created_at|timestamp - now()|timestamp) < 86400 %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger ms-1" data-bs-toggle="modal" data-bs-target="#refundModal{{ transaction.id }}">
+                                            Request Refund
+                                        </button>
+                                        
+                                        <!-- Refund Modal -->
+                                        <div class="modal fade" id="refundModal{{ transaction.id }}" tabindex="-1" aria-labelledby="refundModalLabel{{ transaction.id }}" aria-hidden="true">
+                                            <div class="modal-dialog">
+                                                <div class="modal-content">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title" id="refundModalLabel{{ transaction.id }}">Request Refund</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <form action="{{ url_for('payment.request_refund', transaction_id=transaction.id) }}" method="post">
+                                                        <div class="modal-body">
+                                                            <p>You are requesting a refund for: <strong>{{ transaction.description }}</strong></p>
+                                                            <p>Amount: <strong>₹{{ transaction.amount }}</strong></p>
+                                                            
+                                                            <div class="mb-3">
+                                                                <label for="refundReason" class="form-label">Reason for refund</label>
+                                                                <select class="form-select" id="refundReason" name="reason" required>
+                                                                    <option value="">Select a reason</option>
+                                                                    <option value="Service not needed">Service not needed</option>
+                                                                    <option value="Not satisfied with service">Not satisfied with service</option>
+                                                                    <option value="Technical issues">Technical issues</option>
+                                                                    <option value="Accidental purchase">Accidental purchase</option>
+                                                                    <option value="Other">Other</option>
+                                                                </select>
+                                                            </div>
+                                                            
+                                                            <div class="alert alert-warning">
+                                                                <i class="fas fa-exclamation-triangle me-2"></i> Refunding will cancel any associated subscriptions or services.
+                                                            </div>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="submit" class="btn btn-danger">Request Refund</button>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                        <p class="lead">No transactions found</p>
+                        <p class="text-muted">Your transaction history will appear here once you make a purchase.</p>
+                        <a href="{{ url_for('payment.upgrade_to_pro') }}" class="btn btn-primary mt-2">
+                            <i class="fas fa-crown me-2"></i> Upgrade to Pro
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

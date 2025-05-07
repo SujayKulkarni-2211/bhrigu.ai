@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block title %}K-Fold Cross Validation Setup - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">K-Fold Cross Validation</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Configure K-Fold Cross Validation</h2>
+            <p class="text-muted">Advanced evaluation technique for more reliable model performance estimates</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- K-Fold Setup Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">K-Fold Cross Validation Settings</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="fas fa-info-circle fa-lg"></i>
+                            </div>
+                            <div>
+                                <h6 class="alert-heading mb-1">About K-Fold Cross Validation</h6>
+                                <p class="mb-0">K-fold cross validation trains and evaluates your model on multiple data splits, providing more robust performance metrics and reducing the risk of overfitting.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('project.k_fold_evaluation', experiment_id=experiment.id) }}">
+                        <div class="mb-4">
+                            <label for="k_fold_value" class="form-label">Number of Folds (K)</label>
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <input type="range" class="form-range" min="3" max="10" step="1" id="k_fold_value" name="k_fold_value" value="5" oninput="updateKFoldValue(this.value)">
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="input-group">
+                                        <input type="number" class="form-control" id="k_fold_display" value="5" min="3" max="10" oninput="updateKFoldRange(this.value)" readonly>
+                                        <span class="input-group-text">folds</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-text">
+                                More folds provide more accurate performance estimates but take longer to train. 5-fold is a good balance for most cases.
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Validation Strategy</label>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="radio" name="stratify" id="stratified" value="stratified" checked>
+                                <label class="form-check-label" for="stratified">
+                                    <strong>Stratified Cross Validation</strong>
+                                    <div class="text-muted small">Maintains same class distribution across all folds. Recommended for classification problems.</div>
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="stratify" id="random" value="random">
+                                <label class="form-check-label" for="random">
+                                    <strong>Random Cross Validation</strong>
+                                    <div class="text-muted small">Simple random splits without preserving class distribution. Better for regression problems.</div>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Evaluation Metrics</label>
+                            <div class="row">
+                                {% if experiment.problem_type == 'classification' %}
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="metrics" id="accuracy" value="accuracy" checked>
+                                        <label class="form-check-label" for="accuracy">Accuracy</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="metrics" id="precision" value="precision" checked>
+                                        <label class="form-check-label" for="precision">Precision</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="metrics" id="recall" value="recall" checked>
+                                        <label class="form-check-label" for="recall">Recall</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="metrics" id="f1" value="f1" checked>
+                                        <label class="form-check-label" for="f1">F1 Score</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="metrics" id="roc_auc" value="roc_auc" checked>
+                                        <label class="form-check-label" for="roc_auc">ROC AUC</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="metrics" id="confusion_matrix" value="confusion_matrix" checked>
+                                        <label class="form-check-label" for="confusion_matrix">Confusion Matrix</label>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="metrics" id="r2" value="r2" checked>
+                                        <label class="form-check-label" for="r2">R² Score</label>
+                                    </div>
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="metrics" id="mse" value="mse" checked>
+                                        <label class="form-check-label" for="mse">MSE</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check mb-2">
+                                        <input class="form-check-input" type="checkbox" name="metrics" id="rmse" value="rmse" checked>
+                                        <label class="form-check-label" for="rmse">RMSE</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="metrics" id="mae" value="mae" checked>
+                                        <label class="form-check-label" for="mae">MAE</label>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="mb-3">Models to Evaluate</h6>
+                                    <p class="text-muted small mb-3">All available models for your problem type will be evaluated using K-fold cross validation:</p>
+                                    
+                                    <div class="row">
+                                        {% if experiment.problem_type == 'classification' %}
+                                        <div class="col-md-6">
+                                            <ul class="list-unstyled mb-0">
+                                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Random Forest</li>
+                                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Logistic Regression</li>
+                                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Gradient Boosting</li>
+                                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>SVM Classifier</li>
+                                            </ul>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <ul class="list-unstyled mb-0">
+                                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>K-Nearest Neighbors</li>
+                                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Neural Network (MLP)</li>
+                                                {% if is_pro %}
+                                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>LSTM Network</li>
+                                                <li><i class="fas fa-check-circle text-success me-2"></i>Quantum Classifier</li>
+                                                {% else %}
+                                                <li class="mb-2"><i class="fas fa-times-circle text-muted me-2"></i>LSTM Network (Pro only)</li>
+                                                <li><i class="fas fa-times-circle text-muted me-2"></i>Quantum Classifier (Pro only)</li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                        {% else %}
+                                        <div class="col-md-6">
+                                            <ul class="list-unstyled mb-0">
+                                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Random Forest Regressor</li>
+                                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Linear Regression</li>
+                                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Gradient Boosting Regressor</li>
+                                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>SVR</li>
+                                            </ul>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <ul class="list-unstyled mb-0">
+                                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>K-Nearest Neighbors</li>
+                                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Neural Network (MLP)</li>
+                                                {% if is_pro %}
+                                                <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>LSTM Network</li>
+                                                <li><i class="fas fa-check-circle text-success me-2"></i>Quantum Regression</li>
+                                                {% else %}
+                                                <li class="mb-2"><i class="fas fa-times-circle text-muted me-2"></i>LSTM Network (Pro only)</li>
+                                                <li><i class="fas fa-times-circle text-muted me-2"></i>Quantum Regression (Pro only)</li>
+                                                {% endif %}
+                                            </ul>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary" id="startKFoldButton">
+                                <i class="fas fa-play-circle me-2"></i>Start K-Fold Evaluation
+                            </button>
+                            <a href="{{ url_for('project.view', experiment_id=experiment.id) }}" class="btn btn-link text-muted">
+                                Cancel and return to project
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <!-- K-fold Benefits Card -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Benefits of K-Fold Cross Validation</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="feature-icon-small bg-primary-light text-primary me-3 mt-1">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">More Reliable Metrics</h6>
+                                    <p class="text-muted small mb-0">Get performance metrics with confidence intervals based on multiple evaluations</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="feature-icon-small bg-success-light text-success me-3 mt-1">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Reduce Overfitting Risk</h6>
+                                    <p class="text-muted small mb-0">Evaluate models on multiple data splits to ensure they generalize well</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="feature-icon-small bg-warning-light text-warning me-3 mt-1">
+                                    <i class="fas fa-trophy"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Better Model Selection</h6>
+                                    <p class="text-muted small mb-0">Compare models more fairly with standardized evaluation protocol</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="feature-icon-small bg-info-light text-info me-3 mt-1">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Parallel Processing</h6>
+                                    <p class="text-muted small mb-0">Multiple models are evaluated simultaneously for faster results</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- How It Works Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">How K-Fold Cross Validation Works</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <img src="{{ url_for('static', filename='images/k_fold_diagram.png') }}" class="img-fluid rounded" alt="K-Fold Cross Validation Diagram">
+                    </div>
+                    
+                    <ol class="mb-0">
+                        <li class="mb-2">
+                            <strong>Data Splitting:</strong> 
+                            <p class="text-muted small">Your dataset is divided into K equal parts (folds).</p>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Multiple Training Runs:</strong> 
+                            <p class="text-muted small">K separate models are trained, each using K-1 folds for training and the remaining fold for validation.</p>
+                        </li>
+                        <li class="mb-2">
+                            <strong>Performance Aggregation:</strong> 
+                            <p class="text-muted small">Results from all K models are averaged to get a more reliable performance estimate.</p>
+                        </li>
+                        <li>
+                            <strong>Model Selection:</strong> 
+                            <p class="text-muted small">Compare performance across different algorithms to select the best model type.</p>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+            
+            <!-- Dataset Info Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Dataset Information</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Project:</div>
+                                <div class="col-7 fw-medium">{{ experiment.name }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Problem Type:</div>
+                                <div class="col-7">{{ experiment.problem_type|capitalize }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Target Column:</div>
+                                <div class="col-7">{{ experiment.target_column }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Dataset Size:</div>
+                                <div class="col-7">
+                                    {% if experiment.dataset_info %}
+                                    {{ experiment.dataset_info.num_rows }} rows
+                                    {% else %}
+                                    N/A
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Features:</div>
+                                <div class="col-7">{{ json.loads(experiment.feature_columns)|length }} selected</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Tips Card -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb text-warning me-2"></i>K-Fold Tips</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="mb-2">Choosing K Value</h6>
+                        <p class="text-muted small mb-0">5-fold or 10-fold is standard. Higher values give more accurate estimates but take longer to train.</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="mb-2">Stratification</h6>
+                        <p class="text-muted small mb-0">Always use stratified folds for classification to maintain the same class distribution across all folds.</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="mb-2">Comparing Models</h6>
+                        <p class="text-muted small mb-0">When comparing different algorithms, use the same K-fold splits for fair comparison.</p>
+                    </div>
+                    <div>
+                        <h6 class="mb-2">Processing Time</h6>
+                        <p class="text-muted small mb-0">K-fold evaluation takes approximately K times longer than a single model training. Plan accordingly.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Update K-fold value display
+    function updateKFoldValue(value) {
+        document.getElementById('k_fold_display').value = value;
+    }
+    
+    // Update range slider from input
+    function updateKFoldRange(value) {
+        document.getElementById('k_fold_value').value = value;
+    }
+    
+    // Problem type toggle behavior
+    document.addEventListener('DOMContentLoaded', function() {
+        const problemType = "{{ experiment.problem_type }}";
+        const stratifyRadios = document.querySelectorAll('input[name="stratify"]');
+        
+        // Set default validation strategy based on problem type
+        if (problemType === 'regression') {
+            document.getElementById('random').checked = true;
+        } else {
+            document.getElementById('stratified').checked = true;
+        }
+        
+        // Submit button handling
+        document.getElementById('startKFoldButton').addEventListener('click', function() {
+            showLoader('Initializing K-Fold cross validation...');
+        });
+    });
+</script>
+{% endblock %}

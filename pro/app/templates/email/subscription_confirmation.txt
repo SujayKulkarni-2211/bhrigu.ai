@@ -1,0 +1,8 @@
+Hello {{ user_name }},
+
+Thank you for subscribing to Bhrigu AI. Your subscription is now active.
+
+You now have full access to all our features and updates.
+
+Best regards,
+The Bhrigu AI Team

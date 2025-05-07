@@ -1,0 +1,12 @@
+Hello,
+
+Your One-Time Password (OTP) for Bhrigu AI is:
+
+{{ otp_code }}
+
+This code will expire in 10 minutes.
+
+If you did not request this, please ignore the email.
+
+Best,
+The Bhrigu AI Team

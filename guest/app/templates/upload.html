@@ -1,0 +1,183 @@
+<!-- app/templates/upload.html -->
+{% extends 'base.html' %}
+
+{% block title %}Upload Dataset - Bhrigu.ai{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary-light py-3">
+                <h2 class="card-title text-center mb-0">Upload Your Dataset</h2>
+            </div>
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <p class="lead">Upload your CSV or Excel file to get started with Bhrigu.ai</p>
+                </div>
+                
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    <!-- File Upload -->
+                    <div class="mb-4">
+                        <label for="dataset" class="form-label">Choose a file</label>
+                        <div class="input-group custom-file-input">
+                            <input type="file" class="form-control" id="dataset" name="dataset" accept=".csv,.xlsx,.xls" required>
+                            <label class="input-group-text" for="dataset">Browse</label>
+                        </div>
+                        <div class="form-text">
+                            Supported formats: CSV, Excel (.xlsx, .xls) | Max size: 16MB
+                        </div>
+                    </div>
+                    
+                    <!-- File Preview (shows after selecting file) -->
+                    <div class="card mb-4 d-none" id="filePreview">
+                        <div class="card-body">
+                            <h5 class="card-title">File Preview</h5>
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-file-alt fa-2x text-primary me-3"></i>
+                                <div>
+                                    <p class="mb-0 fw-bold" id="fileNamePreview">filename.csv</p>
+                                    <p class="mb-0 text-muted small" id="fileSizePreview">0 KB</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dataset Guidelines -->
+                    <div class="card mb-4 bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title">Dataset Guidelines</h5>
+                            <ul class="mb-0">
+                                <li>Ensure your dataset has proper column headers</li>
+                                <li>For best results, clean your data of outliers and errors</li>
+                                <li>Include both feature columns and a target column</li>
+                                <li>Make sure categorical features are properly encoded</li>
+                                <li>For classification problems, ensure class labels are clear</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Guest user disclaimer -->
+                    <div class="alert alert-info" role="alert">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="fas fa-info-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h5 class="alert-heading">Guest User Limitations</h5>
+                                <p class="mb-0">As a guest user, you can try one dataset at a time with basic models. Training time is limited to 1 hour. Create an account to access more features!</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary" id="uploadBtn">
+                            <i class="fas fa-upload me-2"></i> Upload Dataset
+                        </button>
+                        <a href="{{ url_for('main.index') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Back to Home
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- What's Next Section -->
+        <div class="card shadow-sm border-0 mt-4">
+            <div class="card-header bg-primary-light py-3">
+                <h3 class="card-title text-center mb-0">What's Next?</h3>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="d-flex flex-column align-items-center text-center">
+                            <div class="process-step-circle mb-3">1</div>
+                            <h5>Dataset Analysis</h5>
+                            <p class="small text-muted">Explore dataset statistics and insights</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex flex-column align-items-center text-center">
+                            <div class="process-step-circle mb-3">2</div>
+                            <h5>Model Selection</h5>
+                            <p class="small text-muted">Choose from recommended models</p>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="d-flex flex-column align-items-center text-center">
+                            <div class="process-step-circle mb-3">3</div>
+                            <h5>Training & Results</h5>
+                            <p class="small text-muted">Train and evaluate your model</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const uploadForm = document.getElementById('uploadForm');
+        const fileInput = document.getElementById('dataset');
+        const filePreview = document.getElementById('filePreview');
+        const fileNamePreview = document.getElementById('fileNamePreview');
+        const fileSizePreview = document.getElementById('fileSizePreview');
+        const uploadBtn = document.getElementById('uploadBtn');
+        
+        // Show file preview when file is selected
+        fileInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const file = this.files[0];
+                
+                // Display file info
+                fileNamePreview.textContent = file.name;
+                fileSizePreview.textContent = formatFileSize(file.size);
+                filePreview.classList.remove('d-none');
+                
+                // Validate file type
+                const fileExt = file.name.split('.').pop().toLowerCase();
+                const validExts = ['csv', 'xlsx', 'xls'];
+                
+                if (!validExts.includes(fileExt)) {
+                    showError('Invalid file type. Please upload a CSV or Excel file.');
+                    uploadBtn.disabled = true;
+                } else {
+                    uploadBtn.disabled = false;
+                }
+            } else {
+                filePreview.classList.add('d-none');
+            }
+        });
+        
+        // Show loader when form is submitted
+        uploadForm.addEventListener('submit', function() {
+            showLoader('Uploading dataset...', 'This may take a moment depending on file size.');
+        });
+        
+        // Helper function to format file size
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+        
+        // Helper function to show error
+        function showError(message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show mt-3';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            
+            uploadForm.insertBefore(alertDiv, uploadForm.firstChild);
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,803 @@
+{% extends "base.html" %}
+
+{% block title %}API Details - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.model_results', experiment_id=experiment.id, model_run_id=model_run.id) }}">{{ model_run.algorithm }} Results</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">API Details</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">{{ model_run.algorithm }} API</h2>
+            <p class="text-muted">Your model is deployed and ready for predictions via API</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-download me-2"></i>Export
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportDropdown">
+                    <li><a class="dropdown-item" href="#" onclick="downloadApiDetails()">
+                        <i class="fas fa-file-code me-2"></i>API Documentation (.json)
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" onclick="downloadPostmanCollection()">
+                        <i class="fas fa-rocket me-2"></i>Postman Collection
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#apiKeyModal">
+                        <i class="fas fa-key me-2"></i>View API Key
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-7 mb-4 mb-md-0">
+            <!-- API Information Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">API Information</h5>
+                        <span class="badge bg-success px-3 py-2">
+                            <i class="fas fa-check-circle me-1"></i>Active
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-success mb-4">
+                        <div class="d-flex">
+                            <i class="fas fa-rocket fa-lg me-3 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1">Your API is live!</h6>
+                                <p class="mb-0">Your model has been successfully deployed and is ready to accept prediction requests.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="mb-3">Endpoint Details</h6>
+                        <div class="mb-3">
+                            <label class="form-label">API Endpoint</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control bg-light" value="{{ model_run.api_endpoint }}" readonly>
+                                <button class="btn btn-outline-secondary" type="button" onclick="copyToClipboard('{{ model_run.api_endpoint }}')">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Use this URL to make prediction requests.</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">API Key</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control bg-light" value="••••••••••••••••••••••••••••••" readonly>
+                                <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#apiKeyModal">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Your secret API key is required for authentication. Keep it secure!</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Documentation</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control bg-light" value="{{ model_run.api_endpoint }}/docs" readonly>
+                                <a href="{{ model_run.api_endpoint }}/docs" target="_blank" class="btn btn-outline-secondary">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </div>
+                            <div class="form-text">Interactive API documentation with Swagger UI.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="mb-3">Model Information</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <th scope="row" style="width: 30%">Algorithm</th>
+                                        <td>{{ model_run.algorithm }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Type</th>
+                                        <td>{{ model_run.model_type|capitalize }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Problem Type</th>
+                                        <td>{{ experiment.problem_type|capitalize }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Performance</th>
+                                        <td>
+                                            {% if model_run.metrics %}
+                                            {% set metrics = json.loads(model_run.metrics) %}
+                                            {% if experiment.problem_type == 'classification' %}
+                                            Accuracy: {{ (metrics.accuracy * 100)|round(2) }}%
+                                            {% else %}
+                                            R² Score: {{ metrics.r2|round(3) }}
+                                            {% endif %}
+                                            {% else %}
+                                            Not available
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Deployment Date</th>
+                                        <td>{{ model_run.api_created_at.strftime('%b %d, %Y') if model_run.api_created_at else 'Today' }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="mb-3">API Usage</h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3 mb-md-0">
+                                <div class="card h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="feature-icon-small bg-primary-light text-primary me-3">
+                                                <i class="fas fa-chart-bar"></i>
+                                            </div>
+                                            <h6 class="mb-0">Requests</h6>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-end">
+                                            <h3 class="mb-0">
+                                                {{ api_usage.request_count if api_usage else 0 }}
+                                            </h3>
+                                            <span class="text-muted small">
+                                                / {{ api_usage.monthly_limit if api_usage else 10000 }}
+                                            </span>
+                                        </div>
+                                        <div class="progress mt-2" style="height: 4px;">
+                                            <div class="progress-bar" role="progressbar" 
+                                                 style="width: {{ (api_usage.request_count / api_usage.monthly_limit * 100) if api_usage else 0 }}%" 
+                                                 aria-valuenow="{{ (api_usage.request_count / api_usage.monthly_limit * 100) if api_usage else 0 }}" 
+                                                 aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <div class="feature-icon-small bg-success-light text-success me-3">
+                                                <i class="fas fa-check-circle"></i>
+                                            </div>
+                                            <h6 class="mb-0">Success Rate</h6>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-end">
+                                            {% if api_usage and api_usage.request_count > 0 %}
+                                            {% set success_rate = (api_usage.successful_requests / api_usage.request_count * 100)|round(1) %}
+                                            {% else %}
+                                            {% set success_rate = 100 %}
+                                            {% endif %}
+                                            <h3 class="mb-0">{{ success_rate }}%</h3>
+                                            <span class="text-muted small">
+                                                {{ api_usage.successful_requests if api_usage else 0 }} / {{ api_usage.request_count if api_usage else 0 }}
+                                            </span>
+                                        </div>
+                                        <div class="progress mt-2" style="height: 4px;">
+                                            <div class="progress-bar bg-success" role="progressbar" 
+                                                 style="width: {{ success_rate }}%" 
+                                                 aria-valuenow="{{ success_rate }}" 
+                                                 aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <a href="#" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#testApiModal">
+                            <i class="fas fa-flask me-2"></i>Test API
+                        </a>
+                        <a href="#" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#apiSettingsModal">
+                            <i class="fas fa-cog me-2"></i>API Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Usage Analytics Card (visible when there's API activity) -->
+            {% if api_usage and api_usage.request_count > 0 %}
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Usage Analytics</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs mb-3" id="apiUsageTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="requests-tab" data-bs-toggle="tab" data-bs-target="#requests" type="button" role="tab" aria-controls="requests" aria-selected="true">Requests</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="performance-tab" data-bs-toggle="tab" data-bs-target="#performance" type="button" role="tab" aria-controls="performance" aria-selected="false">Performance</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="errors-tab" data-bs-toggle="tab" data-bs-target="#errors" type="button" role="tab" aria-controls="errors" aria-selected="false">Errors</button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="apiUsageTabContent">
+                        <div class="tab-pane fade show active" id="requests" role="tabpanel" aria-labelledby="requests-tab">
+                            <div style="height: 300px;">
+                                <canvas id="requestsChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="performance" role="tabpanel" aria-labelledby="performance-tab">
+                            <div style="height: 300px;">
+                                <canvas id="performanceChart"></canvas>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="errors" role="tabpanel" aria-labelledby="errors-tab">
+                            <div style="height: 300px;">
+                                <canvas id="errorsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-5">
+            <!-- Code Examples Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Code Examples</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs mb-3" id="codeExampleTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="python-tab" data-bs-toggle="tab" data-bs-target="#python" type="button" role="tab" aria-controls="python" aria-selected="true">Python</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="javascript-tab" data-bs-toggle="tab" data-bs-target="#javascript" type="button" role="tab" aria-controls="javascript" aria-selected="false">JavaScript</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="curl-tab" data-bs-toggle="tab" data-bs-target="#curl" type="button" role="tab" aria-controls="curl" aria-selected="false">cURL</button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content" id="codeExampleTabContent">
+                        <div class="tab-pane fade show active" id="python" role="tabpanel" aria-labelledby="python-tab">
+                            <pre class="bg-light p-3 rounded" id="pythonCode"><code>{{ python_snippet }}</code></pre>
+                            <div class="text-end mt-2">
+                                <button class="btn btn-sm btn-outline-primary" onclick="copyCode('pythonCode')">
+                                    <i class="fas fa-copy me-1"></i>Copy Code
+                                </button>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="javascript" role="tabpanel" aria-labelledby="javascript-tab">
+                            <pre class="bg-light p-3 rounded" id="javascriptCode"><code>{{ javascript_snippet }}</code></pre>
+                            <div class="text-end mt-2">
+                                <button class="btn btn-sm btn-outline-primary" onclick="copyCode('javascriptCode')">
+                                    <i class="fas fa-copy me-1"></i>Copy Code
+                                </button>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="curl" role="tabpanel" aria-labelledby="curl-tab">
+                            <pre class="bg-light p-3 rounded" id="curlCode"><code>{{ curl_snippet }}</code></pre>
+                            <div class="text-end mt-2">
+                                <button class="btn btn-sm btn-outline-primary" onclick="copyCode('curlCode')">
+                                    <i class="fas fa-copy me-1"></i>Copy Code
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- API Specifications Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">API Specifications</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">HTTP Method</h6>
+                                    <p class="text-muted mb-0 small">POST</p>
+                                </div>
+                                <span class="badge bg-primary">POST</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">Content Type</h6>
+                                    <p class="text-muted mb-0 small">application/json</p>
+                                </div>
+                                <span class="badge bg-secondary">JSON</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">Authentication</h6>
+                                    <p class="text-muted mb-0 small">Bearer Token</p>
+                                </div>
+                                <span class="badge bg-info">API Key</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">Rate Limit</h6>
+                                    <p class="text-muted mb-0 small">100 requests/minute</p>
+                                </div>
+                                <span class="badge bg-warning">100/min</span>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">CORS Enabled</h6>
+                                    <p class="text-muted mb-0 small">Cross-Origin Resource Sharing</p>
+                                </div>
+                                <span class="badge bg-success">Yes</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Request/Response Format Card -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Request/Response Format</h5>
+                </div>
+                <div class="card-body">
+                    <h6 class="mb-2">Request Body</h6>
+                    <pre class="bg-light p-3 rounded mb-4" id="requestFormat"><code>{
+    "features": [
+        {% for feature in json.loads(experiment.feature_columns) %}
+        "{{ feature }}": value,
+        {% endfor %}
+    ]
+}</code></pre>
+                    
+                    <h6 class="mb-2">Response Format</h6>
+                    <pre class="bg-light p-3 rounded" id="responseFormat"><code>{
+    "prediction": {% if experiment.problem_type == 'classification' %}"class_label",
+    "probabilities": {
+        "class1": 0.85,
+        "class2": 0.15
+    }{% else %}numeric_value,
+    "confidence": 0.92{% endif %},
+    "model_version": "{{ model_run.id }}",
+    "timestamp": "2025-05-03T12:34:56.789Z"
+}</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Key Modal -->
+<div class="modal fade" id="apiKeyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">API Key</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    This is your secret API key. Do not share it or expose it in client-side code.
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">API Key</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" value="{{ model_run.api_key }}" id="apiKeyInput" readonly>
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyApiKey()">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mt-3">
+                    <h6 class="mb-2">Usage Instructions</h6>
+                    <p class="small text-muted">Include this key in the Authorization header of your API requests:</p>
+                    <pre class="bg-light p-2 rounded small">Authorization: Bearer {{ model_run.api_key }}</pre>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#regenerateKeyModal">
+                    <i class="fas fa-sync-alt me-1"></i>Regenerate Key
+                </button>
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test API Modal -->
+<div class="modal fade" id="testApiModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Test API</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Request Data</label>
+                    <textarea class="form-control" id="testRequestData" rows="10">{
+    "features": {
+        {% for feature in json.loads(experiment.feature_columns) %}
+        "{{ feature }}": null{% if not loop.last %},{% endif %}
+        {% endfor %}
+    }
+}</textarea>
+                    <div class="form-text">Replace null values with actual test data.</div>
+                </div>
+                
+                <div class="mb-3 d-none" id="testResponseContainer">
+                    <label class="form-label">Response</label>
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span id="testResponseStatus" class="badge bg-success">200 OK</span>
+                            <span id="testResponseTime" class="small text-muted">156 ms</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <pre class="m-0 p-3" id="testResponseData"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="sendTestRequestBtn">
+                    <i class="fas fa-paper-plane me-1"></i>Send Request
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- API Settings Modal -->
+<div class="modal fade" id="apiSettingsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">API Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="apiSettingsForm">
+                    <div class="mb-3">
+                        <label for="requestLimit" class="form-label">Monthly Request Limit</label>
+                        <select class="form-select" id="requestLimit">
+                            <option value="10000" selected>10,000 requests/month</option>
+                            <option value="50000">50,000 requests/month (Pro)</option>
+                            <option value="100000">100,000 requests/month (Pro)</option>
+                            <option value="unlimited">Unlimited (Enterprise)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="accessControl" class="form-label">Access Control</label>
+                        <select class="form-select" id="accessControl">
+                            <option value="private" selected>Private (API key required)</option>
+                            <option value="public">Public (No API key required)</option>
+                            <option value="ip_whitelist">IP Whitelist (Pro)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="caching" class="form-label">Response Caching</label>
+                        <select class="form-select" id="caching">
+                            <option value="disabled" selected>Disabled</option>
+                            <option value="10min">Enable (10 minutes)</option>
+                            <option value="1hour">Enable (1 hour)</option>
+                            <option value="1day">Enable (1 day)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="enableVersioning" checked>
+                        <label class="form-check-label" for="enableVersioning">
+                            Enable API Versioning
+                        </label>
+                        <div class="form-text">Keep multiple versions of your API active simultaneously.</div>
+                    </div>
+                    
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="enableLogging" checked>
+                        <label class="form-check-label" for="enableLogging">
+                            Enable Request Logging
+                        </label>
+                        <div class="form-text">Log detailed information about API requests and responses.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveApiSettingsBtn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Regenerate API Key Modal -->
+<div class="modal fade" id="regenerateKeyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Regenerate API Key</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> Regenerating your API key will invalidate the current key immediately. Any applications using the old key will stop working.
+                </div>
+                <p>Are you sure you want to regenerate your API key?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmRegenerateKeyBtn">
+                    <i class="fas fa-sync-alt me-1"></i>Regenerate Key
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Copy to clipboard function
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Copied to clipboard!');
+        });
+    }
+    
+    // Copy code function
+    function copyCode(elementId) {
+        const codeElement = document.getElementById(elementId);
+        const code = codeElement.textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            showToast('Code copied to clipboard!');
+        });
+    }
+    
+    // Copy API key function
+    function copyApiKey() {
+        const apiKeyInput = document.getElementById('apiKeyInput');
+        apiKeyInput.select();
+        document.execCommand('copy');
+        showToast('API key copied to clipboard!');
+    }
+    
+    // Show toast notification
+    function showToast(message) {
+        // Create toast element
+        const toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        
+        const toast = document.createElement('div');
+        toast.className = 'toast align-items-center text-white bg-success';
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+        toast.setAttribute('aria-atomic', 'true');
+        
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        `;
+        
+        toastContainer.appendChild(toast);
+        document.body.appendChild(toastContainer);
+        
+        const bsToast = new bootstrap.Toast(toast, {
+            delay: 3000
+        });
+        
+        bsToast.show();
+        
+        // Remove the toast container after it's hidden
+        toast.addEventListener('hidden.bs.toast', () => {
+            document.body.removeChild(toastContainer);
+        });
+    }
+    
+    // Function to download API details
+    function downloadApiDetails() {
+        const apiInfo = {
+            api_endpoint: "{{ model_run.api_endpoint }}",
+            algorithm: "{{ model_run.algorithm }}",
+            problem_type: "{{ experiment.problem_type }}",
+            features: {{ experiment.feature_columns|safe }},
+            target_column: "{{ experiment.target_column }}",
+            deployment_date: "{{ model_run.api_created_at|default('now')|string }}"
+        };
+        
+        // Create a Blob with the data
+        const blob = new Blob([JSON.stringify(apiInfo, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        
+        // Create download link
+        const a = document.createElement('a');
+        a.setAttribute('href', url);
+        a.setAttribute('download', '{{ experiment.name }}_api_details.json');
+        a.click();
+        
+        // Clean up
+        URL.revokeObjectURL(url);
+    }
+    
+    // Function to download Postman collection
+    function downloadPostmanCollection() {
+        // Create Postman collection object
+        const postmanCollection = {
+            "info": {
+                "name": "{{ experiment.name }} API Collection",
+                "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+            },
+            "item": [
+                {
+                    "name": "Make Prediction",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            },
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{ model_run.api_key }}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": JSON.stringify({
+                                "features": {{ experiment.feature_columns|safe }}.reduce((obj, key) => {
+                                    obj[key] = null;
+                                    return obj;
+                                }, {})
+                            }, null, 2)
+                        },
+                        "url": {
+                            "raw": "{{ model_run.api_endpoint }}",
+                            "protocol": "https",
+                            "host": "{{ model_run.api_endpoint }}".replace(/^https?:\/\//, '').split('/')[0].split('.'),
+                            "path": "{{ model_run.api_endpoint }}".replace(/^https?:\/\/[^\/]+/, '').split('/').filter(Boolean)
+                        },
+                        "description": "Make a prediction using the {{ model_run.algorithm }} model"
+                    },
+                    "response": []
+                }
+            ]
+        };
+        
+        // Create a Blob with the data
+        const blob = new Blob([JSON.stringify(postmanCollection, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        
+        // Create download link
+        const a = document.createElement('a');
+        a.setAttribute('href', url);
+        a.setAttribute('download', '{{ experiment.name }}_postman_collection.json');
+        a.click();
+        
+        // Clean up
+        URL.revokeObjectURL(url);
+    }
+    
+    // Handle form submission for API testing
+    document.getElementById('sendTestRequestBtn').addEventListener('click', function() {
+        const testRequestData = document.getElementById('testRequestData').value;
+        const testResponseContainer = document.getElementById('testResponseContainer');
+        const testResponseStatus = document.getElementById('testResponseStatus');
+        const testResponseTime = document.getElementById('testResponseTime');
+        const testResponseData = document.getElementById('testResponseData');
+        
+        // Show the response container
+        testResponseContainer.classList.remove('d-none');
+        
+        // Update status to loading
+        testResponseStatus.textContent = 'Sending request...';
+        testResponseStatus.className = 'badge bg-info';
+        testResponseTime.textContent = '';
+        testResponseData.textContent = 'Loading...';
+        
+        // Record start time
+        const startTime = new Date();
+        
+        try {
+            // Parse the request data
+            const requestBody = JSON.parse(testRequestData);
+            
+            // Send the request to the API
+            fetch('{{ model_run.api_endpoint }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer {{ model_run.api_key }}'
+                },
+                body: JSON.stringify(requestBody)
+            })
+            .then(response => {
+                // Calculate response time
+                const endTime = new Date();
+                const timeDiff = endTime - startTime;
+                testResponseTime.textContent = `${timeDiff} ms`;
+                
+                // Update status badge
+                if (response.ok) {
+                    testResponseStatus.textContent = `${response.status} ${response.statusText || 'OK'}`;
+                    testResponseStatus.className = 'badge bg-success';
+                } else {
+                    testResponseStatus.textContent = `${response.status} ${response.statusText || 'Error'}`;
+                    testResponseStatus.className = 'badge bg-danger';
+                }
+                
+                return response.json().catch(e => {
+                    return { error: 'Invalid JSON response' };
+                });
+            })
+            .then(data => {
+                // Display the response data
+                testResponseData.textContent = JSON.stringify(data, null, 2);
+            })
+            .catch(error => {
+                // Handle fetch error
+                testResponseStatus.textContent = 'Network Error';
+                testResponseStatus.className = 'badge bg-danger';
+                testResponseData.textContent = error.message;
+            });
+        } catch (error) {
+            // Handle JSON parse error
+            testResponseStatus.textContent = 'Invalid JSON';
+            testResponseStatus.className = 'badge bg-danger';
+            testResponseData.textContent = 'Please provide valid JSON data for the request body.';
+        }
+    });
+    
+    // API settings form submission handler
+    document.getElementById('saveApiSettingsBtn').addEventListener('click', function() {
+        // In a real application, this would send the settings to the server
+        showToast('API settings updated successfully!');
+        
+        // Close the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('apiSettingsModal'));
+        modal.hide();
+    });
+    
+    // Regenerate API key confirmation handler
+    document.getElementById('confirmRegenerateKeyBtn').addEventListener('click', function() {
+        // In a real application, this would call an API to regenerate the key
+        showToast('API key regenerated successfully!');
+        
+        // Close the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('regenerateKeyModal'));
+        modal.hide();
+        
+        // Redirect to refresh the page
+        window.location.reload();
+    });
+</script>
+{% endblock %}

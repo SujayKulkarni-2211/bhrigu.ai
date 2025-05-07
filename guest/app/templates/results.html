@@ -1,0 +1,606 @@
+<!-- app/templates/results.html -->
+{% extends 'base.html' %}
+
+{% block title %}Model Results - Bhrigu.ai{% endblock %}
+
+{% block content %}
+<div class="row">
+    
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.upload') }}">Upload</a></li>
+                <li class="breadcrumb-item"><a
+                        href="{{ url_for('main.analyze', experiment_id=experiment.id) }}">Analyze</a></li>
+                <li class="breadcrumb-item"><a
+                        href="{{ url_for('main.select_model', experiment_id=experiment.id) }}">Select Model</a></li>
+                <li class="breadcrumb-item"><a
+                        href="{{ url_for('main.train_model', experiment_id=experiment.id, model_run_id=model_run.id) }}">Train</a>
+                </li>
+                <li class="breadcrumb-item active" aria-current="page">Results</li>
+            </ol>
+        </nav>
+
+        <h2 class="mb-4">
+            <i class="fas fa-chart-line text-primary me-2"></i> Model Results
+        </h2>
+    </div>
+
+
+    <div class="row g-4">
+        <!-- Main Content -->
+        <div class="col-lg-8">
+            <!-- Performance Metrics Card -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary-light py-3">
+                    <h3 class="card-title mb-0">Performance Metrics</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        {% if experiment.problem_type == 'classification' %}
+                        <!-- Classification Metrics -->
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <h5 class="card-title text-center mb-4">Accuracy & F1 Score</h5>
+                                    <div class="metrics-gauge">
+                                        <div class="gauge-container">
+                                            <div class="gauge-circle accuracy-gauge"
+                                                data-value="{{ metrics.accuracy }}">
+                                                <div class="gauge-value">{{ "%.2f"|format(metrics.accuracy * 100) }}%
+                                                </div>
+                                                <div class="gauge-label">Accuracy</div>
+                                            </div>
+                                        </div>
+                                        <div class="gauge-container">
+                                            <div class="gauge-circle f1-gauge" data-value="{{ metrics.f1 }}">
+                                                <div class="gauge-value">{{ "%.2f"|format(metrics.f1 * 100) }}%</div>
+                                                <div class="gauge-label">F1 Score</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-center mt-4">
+                                        <p class="metric-explanation">
+                                            <strong>Accuracy</strong>: The proportion of correct predictions among the
+                                            total predictions.<br>
+                                            <strong>F1 Score</strong>: Harmonic mean of precision and recall, balancing
+                                            both metrics.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body">
+                                    <h5 class="card-title text-center mb-4">Precision & Recall</h5>
+                                    <div class="metrics-gauge">
+                                        <div class="gauge-container">
+                                            <div class="gauge-circle precision-gauge"
+                                                data-value="{{ metrics.precision }}">
+                                                <div class="gauge-value">{{ "%.2f"|format(metrics.precision * 100) }}%
+                                                </div>
+                                                <div class="gauge-label">Precision</div>
+                                            </div>
+                                        </div>
+                                        <div class="gauge-container">
+                                            <div class="gauge-circle recall-gauge" data-value="{{ metrics.recall }}">
+                                                <div class="gauge-value">{{ "%.2f"|format(metrics.recall * 100) }}%
+                                                </div>
+                                                <div class="gauge-label">Recall</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-center mt-4">
+                                        <p class="metric-explanation">
+                                            <strong>Precision</strong>: The ability of the model to avoid false
+                                            positives.<br>
+                                            <strong>Recall</strong>: The ability of the model to find all positive
+                                            samples.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {% else %}
+                        <!-- Regression Metrics -->
+                        <div class="col-md-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title mb-3">R² Score</h5>
+                                    <div class="metric-circle r2-circle">
+                                        <span class="metric-value">{{ "%.4f"|format(metrics.r2) }}</span>
+                                    </div>
+                                    <p class="mt-3 metric-explanation">
+                                        The proportion of variance in the dependent variable that is predictable from
+                                        the independent variables.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title mb-3">Mean Squared Error</h5>
+                                    <div class="metric-circle mse-circle">
+                                        <span class="metric-value">{{ "%.4f"|format(metrics.mse) }}</span>
+                                    </div>
+                                    <p class="mt-3 metric-explanation">
+                                        Average of the squares of the errors between actual and predicted values.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title mb-3">Mean Absolute Error</h5>
+                                    <div class="metric-circle mae-circle">
+                                        <span class="metric-value">{{ "%.4f"|format(metrics.mae) }}</span>
+                                    </div>
+                                    <p class="mt-3 metric-explanation">
+                                        Average of the absolute differences between actual and predicted values.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Metrics Interpretation -->
+                    <div class="card bg-light mt-4">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-lightbulb text-warning me-2"></i> Metrics Interpretation
+                            </h5>
+                            <div class="interpretation-content">
+                                {% if experiment.problem_type == 'classification' %}
+                                {% if metrics.accuracy >= 0.9 %}
+                                <p>Your model has <strong>excellent accuracy</strong> ({{ "%.1f"|format(metrics.accuracy
+                                    * 100) }}%), correctly classifying a high percentage of samples. The balance between
+                                    precision and recall is also good, resulting in a strong F1 score.</p>
+                                {% elif metrics.accuracy >= 0.8 %}
+                                <p>Your model has <strong>good accuracy</strong> ({{ "%.1f"|format(metrics.accuracy *
+                                    100) }}%), correctly classifying most samples. There's a reasonable balance between
+                                    precision and recall, reflected in the F1 score.</p>
+                                {% elif metrics.accuracy >= 0.7 %}
+                                <p>Your model has <strong>moderate accuracy</strong> ({{ "%.1f"|format(metrics.accuracy
+                                    * 100) }}%). Consider adjusting hyperparameters or trying a different algorithm to
+                                    improve performance.</p>
+                                {% else %}
+                                <p>Your model has <strong>lower than optimal accuracy</strong> ({{
+                                    "%.1f"|format(metrics.accuracy * 100) }}%). This might be due to class imbalance,
+                                    noisy features, or the model not being suitable for this data. Try different
+                                    preprocessing techniques or algorithms.</p>
+                                {% endif %}
+
+                                {% if metrics.precision > metrics.recall and metrics.precision - metrics.recall > 0.2 %}
+                                <p>The model has significantly higher <strong>precision</strong> than
+                                    <strong>recall</strong>, meaning it's more conservative in making positive
+                                    predictions. It misses some positive cases but has fewer false positives.</p>
+                                {% elif metrics.recall > metrics.precision and metrics.recall - metrics.precision > 0.2
+                                %}
+                                <p>The model has significantly higher <strong>recall</strong> than
+                                    <strong>precision</strong>, meaning it captures most positive cases but at the cost
+                                    of more false positives.</p>
+                                {% else %}
+                                <p>The model has a good balance between <strong>precision</strong> and
+                                    <strong>recall</strong>, making it well-rounded for both identifying positive cases
+                                    and avoiding false positives.</p>
+                                {% endif %}
+                                {% else %}
+                                {% if metrics.r2 >= 0.9 %}
+                                <p>Your regression model has an <strong>excellent fit</strong> with R² of {{
+                                    "%.3f"|format(metrics.r2) }}, explaining most of the variance in the target
+                                    variable.</p>
+                                {% elif metrics.r2 >= 0.7 %}
+                                <p>Your regression model has a <strong>good fit</strong> with R² of {{
+                                    "%.3f"|format(metrics.r2) }}, explaining a substantial portion of the variance in
+                                    the target variable.</p>
+                                {% elif metrics.r2 >= 0.5 %}
+                                <p>Your regression model has a <strong>moderate fit</strong> with R² of {{
+                                    "%.3f"|format(metrics.r2) }}. There's room for improvement by tweaking features or
+                                    trying different algorithms.</p>
+                                {% else %}
+                                <p>Your regression model has a <strong>weak fit</strong> with R² of {{
+                                    "%.3f"|format(metrics.r2) }}. Consider feature engineering, removing outliers, or
+                                    trying non-linear models.</p>
+                                {% endif %}
+
+                                <p>The Mean Squared Error (MSE) of {{ "%.3f"|format(metrics.mse) }} and Mean Absolute
+                                    Error (MAE) of {{ "%.3f"|format(metrics.mae) }} give you an idea of prediction error
+                                    in the original units of your target variable.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Model Summary Card -->
+            <div class="card shadow-sm border-0 mt-4">
+                <div class="card-header bg-primary-light py-3">
+                    <h3 class="card-title mb-0">Model Summary</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="summary-section">
+                                <h5 class="fw-bold">Algorithm Details</h5>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Algorithm:</span>
+                                        <strong>{{ model_run.algorithm }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Model Type:</span>
+                                        <strong>{{ model_run.model_type|capitalize }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Problem Type:</span>
+                                        <strong>{{ experiment.problem_type|capitalize }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Training Time:</span>
+                                        <strong>
+                                            {% if model_run.started_at and model_run.completed_at %}
+                                            {{ (model_run.completed_at - model_run.started_at).total_seconds()|int }}
+                                            seconds
+                                            {% else %}
+                                            Not available
+                                            {% endif %}
+                                        </strong>
+                                    </div>
+                                </div>
+
+                                <h5 class="fw-bold mt-4">Dataset Information</h5>
+                                <div class="mb-3">
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Dataset:</span>
+                                        <strong>{{ experiment.dataset_original_name }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Total Rows:</span>
+                                        <strong>{{ experiment.dataset_info.num_rows }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Features Used:</span>
+                                        <strong>{{ experiment.feature_columns|from_json|length }}</strong>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="text-muted">Target Column:</span>
+                                        <strong>{{ experiment.target_column }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="summary-section">
+                                <h5 class="fw-bold">Hyperparameters</h5>
+                                <div class="bg-light rounded p-3">
+                                    {% if model_run.hyperparameters %}
+                                    {% set hyperparams = model_run.hyperparameters|from_json %}
+                                    {% for param, value in hyperparams.items() %}
+                                    <div class="d-flex justify-content-between mb-2">
+                                        <span class="text-muted">{{ param }}:</span>
+                                        <strong>{{ value }}</strong>
+                                    </div>
+                                    {% endfor %}
+                                    {% else %}
+                                    <p class="text-muted mb-0">Default hyperparameters used</p>
+                                    {% endif %}
+                                </div>
+
+                                <h5 class="fw-bold mt-4">Preprocessing Steps</h5>
+                                <div class="bg-light rounded p-3">
+                                    <div class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i> Data split (80% train, 20%
+                                        test)
+                                    </div>
+                                    <div class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i> Missing values imputation
+                                    </div>
+                                    <div class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i> Categorical features
+                                        encoding
+                                    </div>
+                                    <div class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i> Numerical features scaling
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add this content after the download button in results.html -->
+
+                    <!-- Replace the existing download button section with this enhanced version -->
+                    <div class="report-downloads mt-4">
+                        <h5 class="mb-3">Download Reports</h5>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <a href="{{ url_for('main.download_comprehensive_report', model_run_id=model_run.id) }}"
+                                    class="btn btn-primary btn-block w-100">
+                                    <i class="fas fa-file-pdf me-2"></i> Download Comprehensive Report
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a href="{{ url_for('main.download_model', model_run_id=model_run.id) }}"
+                                    class="btn btn-outline-primary btn-block w-100">
+                                    <i class="fas fa-download me-2"></i> Download Model (.pkl)
+                                </a>
+                            </div>
+                        </div>
+                        <div class="row g-3 mt-1">
+                            <div class="col-md-6">
+                                <a href="{{ url_for('main.download_classification_report', model_run_id=model_run.id) }}"
+                                    class="btn btn-outline-secondary btn-block w-100">
+                                    <i class="fas fa-chart-bar me-2"></i> Download Metrics Report
+                                </a>
+                            </div>
+                            {% if model_run.hyperparameters_tuning %}
+                            <div class="col-md-6">
+                                <a href="{{ url_for('main.download_tuning_report', model_run_id=model_run.id) }}"
+                                    class="btn btn-outline-secondary btn-block w-100">
+                                    <i class="fas fa-sliders-h me-2"></i> Download Tuning Report
+                                </a>
+                            </div>
+                            {% else %}
+                            <div class="col-md-6">
+                                <a href="{{ url_for('main.select_model', experiment_id=experiment.id) }}"
+                                    class="btn btn-outline-secondary btn-block w-100">
+                                    <i class="fas fa-sync me-2"></i> Try Another Model
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Add an explanation section about the reports -->
+                    <div class="card bg-light mt-3">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-info-circle text-primary me-2"></i> About the Reports
+                            </h6>
+                            <ul class="mb-0 small">
+                                <li><strong>Comprehensive Report:</strong> Complete analysis including metrics,
+                                    visualizations, and hyperparameter details</li>
+                                <li><strong>Metrics Report:</strong> Focused on model performance metrics and evaluation
+                                </li>
+                                {% if model_run.hyperparameters_tuning %}
+                                <li><strong>Tuning Report:</strong> Details of the hyperparameter optimization process
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Usage Guide Card -->
+                <div class="card shadow-sm border-0 sticky-top">
+                    <div class="card-header bg-primary-light py-3">
+                        <h3 class="card-title mb-0">Using Your Model</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            <strong>Success!</strong> Your model has been trained and is ready to use.
+                        </div>
+
+                        <h5 class="mt-4">How to Use the Model</h5>
+                        <ol class="usage-steps">
+                            <li class="mb-3">
+                                <strong>Download the model</strong> using the button below
+                            </li>
+                            <li class="mb-3">
+                                <strong>Load in Python</strong> using the code example
+                            </li>
+                            <li class="mb-3">
+                                <strong>Make predictions</strong> on new data
+                            </li>
+                        </ol>
+
+                        <h5 class="mt-4">Python Code Example</h5>
+                        <div class="code-block bg-dark text-light p-3 rounded">
+                            <pre class="mb-0"><code>import pickle
+
+                                # Load the model
+                                with open('your_downloaded_model.pkl', 'rb') as f:
+                                    model_data = pickle.load(f)
+
+                                # Extract components
+                                model = model_data['model']
+                                feature_columns = model_data['feature_columns']
+                                target_column = model_data['target_column']
+                                encoders = model_data['encoders']  # For categorical features
+                                scaler = model_data['scaler']  # For numerical features
+
+                                # Your new data should have the same columns as feature_columns
+                                # Preprocess new data the same way as during training
+
+                                # Make predictions
+                                predictions = model.predict(new_data)</code></pre>
+                        </div>
+
+                        <h5 class="mt-4">Need More?</h5>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <p>With a Bhrigu.ai account, you can:</p>
+                                <ul class="mb-0">
+                                    <li>Save experiments for later use</li>
+                                    <li>Run multiple experiments</li>
+                                    <li>Access neural networks and quantum models</li>
+                                    <li>Get detailed reports and visualizations</li>
+                                    <li>Deploy models via API endpoints</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-4">
+                            <a href="#" class="btn btn-outline-success">
+                                <i class="fas fa-user-plus me-2"></i> Create Free Account
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Metrics Gauge Styles */
+    .metrics-gauge {
+        display: flex;
+        justify-content: space-evenly;
+        align-items: center;
+        margin: 20px 0;
+    }
+
+    .gauge-container {
+        text-align: center;
+    }
+
+    .gauge-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        background-color: #f0f0f0;
+        margin: 0 auto;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .gauge-circle::before {
+        content: '';
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        right: 5px;
+        bottom: 5px;
+        border-radius: 50%;
+        background-color: white;
+        z-index: 1;
+    }
+
+    .gauge-value,
+    .gauge-label {
+        position: relative;
+        z-index: 2;
+    }
+
+    .gauge-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        color: #333;
+    }
+
+    .gauge-label {
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+    .accuracy-gauge {
+        background: conic-gradient(#4CAF50 0% calc(var(--value) * 100%), #f0f0f0 calc(var(--value) * 100%) 100%);
+    }
+
+    .f1-gauge {
+        background: conic-gradient(#2196F3 0% calc(var(--value) * 100%), #f0f0f0 calc(var(--value) * 100%) 100%);
+    }
+
+    .precision-gauge {
+        background: conic-gradient(#FF9800 0% calc(var(--value) * 100%), #f0f0f0 calc(var(--value) * 100%) 100%);
+    }
+
+    .recall-gauge {
+        background: conic-gradient(#9C27B0 0% calc(var(--value) * 100%), #f0f0f0 calc(var(--value) * 100%) 100%);
+    }
+
+    /* Regression metrics styles */
+    .metric-circle {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0 auto;
+    }
+
+    .metric-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: white;
+    }
+
+    .r2-circle {
+        background-color: #4CAF50;
+    }
+
+    .mse-circle {
+        background-color: #FF5722;
+    }
+
+    .mae-circle {
+        background-color: #2196F3;
+    }
+
+    .metric-explanation {
+        font-size: 0.85rem;
+        color: #666;
+    }
+
+    /* Usage steps styles */
+    .usage-steps li {
+        padding: 10px;
+        border-left: 3px solid #4CAF50;
+        background-color: #f8f9fa;
+        margin-bottom: 10px;
+    }
+
+    /* Code block styles */
+    .code-block {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .code-block pre {
+        margin: 0;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Add custom filter to parse JSON
+        function fromJSON(value) {
+            try {
+                return JSON.parse(value);
+            } catch (e) {
+                return {};
+            }
+        }
+
+        // Set gauge values using CSS variables
+        document.querySelectorAll('.gauge-circle').forEach(function (gauge) {
+            const value = parseFloat(gauge.dataset.value);
+            gauge.style.setProperty('--value', value);
+        });
+    });
+</script>
+{% endblock %}

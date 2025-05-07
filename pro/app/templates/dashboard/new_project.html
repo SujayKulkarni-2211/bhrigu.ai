@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}New Project - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">New Project</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Create New Project</h2>
+            <p class="text-muted">Start your machine learning journey</p>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Project Details</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('dashboard.new_project') }}">
+                        <div class="mb-3">
+                            <label for="project_name" class="form-label">Project Name</label>
+                            <input type="text" class="form-control" id="project_name" name="project_name" 
+                                   placeholder="E.g., Customer Churn Prediction" required>
+                            <div class="form-text">Choose a descriptive name for your project.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="project_description" class="form-label">Project Description (Optional)</label>
+                            <textarea class="form-control" id="project_description" name="project_description" 
+                                      rows="3" placeholder="Describe what you're trying to accomplish..."></textarea>
+                            <div class="form-text">A brief description to help you remember what this project is about.</div>
+                        </div>
+                        
+                        <div class="alert alert-info" role="alert">
+                            <div class="d-flex">
+                                <div class="me-3">
+                                    <i class="fas fa-info-circle fa-2x"></i>
+                                </div>
+                                <div>
+                                    <h5 class="alert-heading">Project Creation Flow</h5>
+                                    <p class="mb-0">After creating the project, you'll be guided through:</p>
+                                    <ol class="mb-0 mt-2">
+                                        <li>Uploading your dataset</li>
+                                        <li>Analyzing data and selecting features</li>
+                                        <li>Choosing machine learning models</li>
+                                        <li>Training and evaluating results</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus me-2"></i>Create Project
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-md-4 d-none d-md-block">
+            <div class="card bg-light border-0">
+                <div class="card-body">
+                    <h5 class="card-title">Tips for Success</h5>
+                    <ul class="mt-3">
+                        <li class="mb-2">Ensure your dataset is clean and well-structured</li>
+                        <li class="mb-2">Prepare your CSV or Excel file with descriptive column headers</li>
+                        <li class="mb-2">Identify your target variable (what you want to predict)</li>
+                        <li class="mb-2">Consider which features are relevant for prediction</li>
+                        <li class="mb-2">Have a clear goal for what you want to achieve</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

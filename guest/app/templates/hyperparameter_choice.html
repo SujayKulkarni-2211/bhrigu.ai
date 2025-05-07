@@ -1,0 +1,158 @@
+<!-- app/templates/hyperparameter_choice.html -->
+{% extends 'base.html' %}
+
+{% block title %}Choose Hyperparameter Approach - Bhrigu.ai{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.upload') }}">Upload</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.analyze', experiment_id=experiment.id) }}">Analyze</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Choose Approach</li>
+            </ol>
+        </nav>
+        
+        <h2 class="mb-4">
+            <i class="fas fa-sliders-h text-primary me-2"></i> Choose Hyperparameter Approach
+        </h2>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary-light py-3">
+                <h3 class="card-title mb-0">How would you like to set hyperparameters?</h3>
+            </div>
+            <div class="card-body">
+                <p class="lead">You have two options to set up your model's hyperparameters:</p>
+                
+                <div class="row g-4 mt-2">
+                    <!-- Automatic Tuning Option -->
+                    <div class="col-md-6">
+                        <div class="card h-100 border hover-card">
+                            <div class="card-body text-center p-4">
+                                <div class="mb-3">
+                                    <i class="fas fa-magic fa-4x text-primary"></i>
+                                </div>
+                                <h4 class="card-title">Automatic Tuning</h4>
+                                <p class="card-text">
+                                    Let the system find the best hyperparameters through rigorous testing of multiple combinations.
+                                </p>
+                                <ul class="text-start mb-4">
+                                    <li>Tests many parameter combinations</li>
+                                    <li>Higher chance of optimal performance</li>
+                                    <li>Takes more time to complete</li>
+                                    <li>Includes detailed tuning report</li>
+                                </ul>
+                                <a href="{{ url_for('main.start_hyperparameter_tuning', experiment_id=experiment.id, model_id=model_id) }}" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-magic me-2"></i> Find Best Hyperparameters
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Manual Configuration Option -->
+                    <div class="col-md-6">
+                        <div class="card h-100 border hover-card">
+                            <div class="card-body text-center p-4">
+                                <div class="mb-3">
+                                    <i class="fas fa-sliders-h fa-4x text-secondary"></i>
+                                </div>
+                                <h4 class="card-title">Manual Configuration</h4>
+                                <p class="card-text">
+                                    Set hyperparameters yourself based on your knowledge or specific requirements.
+                                </p>
+                                <ul class="text-start mb-4">
+                                    <li>Start with sensible default values</li>
+                                    <li>Complete control over parameters</li>
+                                    <li>Faster path to training</li>
+                                    <li>Good for experienced users</li>
+                                </ul>
+                                <a href="{{ url_for('main.configure_hyperparameters', experiment_id=experiment.id, model_id=model_id, mode='manual') }}" class="btn btn-secondary btn-lg w-100">
+                                    <i class="fas fa-cog me-2"></i> Configure Manually
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mt-4">
+                    <div class="d-flex">
+                        <div class="me-3">
+                            <i class="fas fa-info-circle fa-2x"></i>
+                        </div>
+                        <div>
+                            <h5 class="alert-heading">Not sure which to choose?</h5>
+                            <p class="mb-0">If you're new to machine learning, we recommend automatic tuning for better results. If you have experience or specific parameter values in mind, manual configuration gives you more control.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 sticky-top" style="top: 80px;">
+            <div class="card-header bg-primary-light py-3">
+                <h3 class="card-title mb-0">Experiment Summary</h3>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <h5>Dataset</h5>
+                    <p class="text-muted mb-0">{{ experiment.dataset_original_name }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h5>Problem Type</h5>
+                    <p class="text-muted mb-0">{{ experiment.problem_type|capitalize }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h5>Selected Model</h5>
+                    <p class="text-muted mb-0">{{ model_algorithm }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h5>Target Column</h5>
+                    <p class="text-muted mb-0">{{ experiment.target_column }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <h5>Selected Features</h5>
+                    <div class="bg-light p-2 rounded" style="max-height: 150px; overflow-y: auto;">
+                        <ul class="list-unstyled mb-0">
+                            {% for feature in experiment.feature_columns|from_json %}
+                            <li><small>{{ feature }}</small></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-clock me-2"></i>
+                    <strong>Automatic tuning may take longer</strong> than manual configuration due to testing multiple parameter combinations.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hover-card {
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}

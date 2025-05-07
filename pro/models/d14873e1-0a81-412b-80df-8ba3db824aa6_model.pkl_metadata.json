@@ -1,0 +1,67 @@
+{
+  "model_type": "classical",
+  "algorithm": "GradientBoosting",
+  "problem_type": "classification",
+  "params": {
+    "n_estimators": 100,
+    "learning_rate": 0.1,
+    "max_depth": 3,
+    "subsample": 1.0
+  },
+  "metrics": {
+    "accuracy": 0.23,
+    "precision": 0.2258917106285527,
+    "recall": 0.23,
+    "f1": 0.22433608725370738,
+    "roc_auc": 0.49225569954297504,
+    "problem_type": "classification"
+  },
+  "best_params": null,
+  "feature_importances": [
+    0.20319501981630506,
+    0.3629315226594484,
+    0.41593609072842125,
+    0.017937366795825273
+  ],
+  "confusion_matrix_data": [
+    [
+      2,
+      3,
+      6,
+      4,
+      5
+    ],
+    [
+      5,
+      8,
+      1,
+      4,
+      6
+    ],
+    [
+      1,
+      5,
+      6,
+      1,
+      3
+    ],
+    [
+      2,
+      2,
+      5,
+      4,
+      2
+    ],
+    [
+      8,
+      4,
+      8,
+      2,
+      3
+    ]
+  ],
+  "classification_report_data": "              precision    recall  f1-score   support\n\n           0       0.11      0.10      0.11        20\n           1       0.36      0.33      0.35        24\n           2       0.23      0.38      0.29        16\n           3       0.27      0.27      0.27        15\n           4       0.16      0.12      0.14        25\n\n    accuracy                           0.23       100\n   macro avg       0.23      0.24      0.23       100\nweighted avg       0.23      0.23      0.22       100\n",
+  "timestamp": "2025-05-05T09:14:16.184838",
+  "scaler_path": "C:\\Users\\sujay\\OneDrive\\Desktop\\bhrigu-ai\\pro\\models\\d14873e1-0a81-412b-80df-8ba3db824aa6_model.pkl_scaler.pkl",
+  "encoder_path": "C:\\Users\\sujay\\OneDrive\\Desktop\\bhrigu-ai\\pro\\models\\d14873e1-0a81-412b-80df-8ba3db824aa6_model.pkl_encoder.pkl"
+}

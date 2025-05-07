@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+
+{% block title %}Train Model - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ model_run.algorithm }} Training</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Training {{ model_run.algorithm }}</h2>
+            <p class="text-muted">Step 4: Model training and evaluation</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="d-flex align-items-center justify-content-md-end">
+                <span class="badge rounded-pill bg-{{ getStatusColor(model_run.status) }} me-2 px-3 py-2">
+                    {{ model_run.status.replace('_', ' ').title() }}
+                </span>
+                <button type="button" class="btn btn-outline-primary" id="refreshButton">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4 mb-md-0">
+            <!-- Training Progress Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Training Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4" id="statusContainer">
+                        {% if model_run.status == 'training' %}
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h5 class="mb-1">Training in Progress</h5>
+                        <p class="text-muted mb-0" id="timeElapsed">Elapsed: 0 min 0 sec</p>
+                        {% elif model_run.status == 'completed' %}
+                        <div class="mb-3">
+                            <i class="fas fa-check-circle text-success fa-4x"></i>
+                        </div>
+                        <h5 class="mb-1">Training Complete</h5>
+                        <p class="text-muted mb-0">Training completed successfully</p>
+                        {% elif model_run.status == 'failed' %}
+                        <div class="mb-3">
+                            <i class="fas fa-times-circle text-danger fa-4x"></i>
+                        </div>
+                        <h5 class="mb-1">Training Failed</h5>
+                        <p class="text-muted mb-0">An error occurred during training</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="progress mb-3" style="height: 8px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                             style="width: {{ '100%' if model_run.status == 'completed' else '75%' if model_run.status == 'training' else '0%' }}" 
+                             aria-valuenow="{{ 100 if model_run.status == 'completed' else 75 if model_run.status == 'training' else 0 }}" 
+                             aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    
+                    {% if model_run.status == 'training' %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        This may take several minutes. You can leave this page and come back later, or you will receive an email when training is complete.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-4">
+                        <h6 class="mb-2">Model Configuration</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th scope="row" class="w-50">Algorithm</th>
+                                        <td>{{ model_run.algorithm }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Type</th>
+                                        <td>{{ model_run.model_type|capitalize }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Problem Type</th>
+                                        <td>{{ experiment.problem_type|capitalize }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Dataset Rows</th>
+                                        <td>{{ dataset_info.num_rows|default('N/A') }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Target Column</th>
+                                        <td>{{ experiment.target_column }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    {% if model_run.hyperparameters %}
+                    <div>
+                        <h6 class="mb-2">Hyperparameters</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <tbody>
+                                    {% set hyperparams = json.loads(model_run.hyperparameters) %}
+                                    {% for param, value in hyperparams.items() %}
+                                    <tr>
+                                        <th scope="row" class="w-50">{{ param }}</th>
+                                        <td>{{ value|string }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% if model_run.status == 'failed' %}
+                <div class="card-footer bg-light">
+                    <div class="d-grid">
+                        <button class="btn btn-primary" onclick="retryTraining()">
+                            <i class="fas fa-redo me-2"></i>Retry Training
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Actions Card (visible only when training is complete) -->
+            {% if model_run.status == 'completed' %}
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Next Steps</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('project.model_results', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-primary">
+                            <i class="fas fa-chart-bar me-2"></i>View Detailed Results
+                        </a>
+                        <a href="{{ url_for('project.download_model', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-download me-2"></i>Download Trained Model
+                        </a>
+                        <a href="{{ url_for('project.download_model_report', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-file-pdf me-2"></i>Download Report
+                        </a>
+                        {% if is_pro %}
+                        <a href="{{ url_for('project.deploy_model_api', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-outline-success">
+                            <i class="fas fa-server me-2"></i>Deploy as API
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-6">
+            <!-- Training Logs -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Training Logs</h5>
+                        <button class="btn btn-sm btn-outline-secondary" id="copyLogsButton">
+                            <i class="fas fa-copy me-1"></i>Copy Logs
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="log-container bg-dark text-light p-3" style="height: 500px; overflow-y: auto;" id="logsContainer">
+                        {% if model_run.logs %}
+                        <pre style="white-space: pre-wrap; margin-bottom: 0;">{{ model_run.logs }}</pre>
+                        {% else %}
+                        <pre style="white-space: pre-wrap; margin-bottom: 0;">Waiting for logs...</pre>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Training Results Card (visible only when training is complete) -->
+    {% if model_run.status == 'completed' and model_run.metrics %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Initial Results</h5>
+                </div>
+                <div class="card-body">
+                    {% set metrics = json.loads(model_run.metrics) %}
+                    <div class="row">
+                        {% if experiment.problem_type == 'classification' %}
+                        <!-- Classification Metrics -->
+                        <div class="col-md-3 col-sm-6 mb-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center py-4">
+                                    <h6 class="text-muted mb-3">Accuracy</h6>
+                                    <div class="display-4 fw-bold text-primary mb-0">
+                                        {{ (metrics.accuracy * 100)|round|int }}%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 col-sm-6 mb-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center py-4">
+                                    <h6 class="text-muted mb-3">Precision</h6>
+                                    <div class="display-4 fw-bold text-primary mb-0">
+                                        {{ (metrics.precision * 100)|round|int }}%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 col-sm-6 mb-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center py-4">
+                                    <h6 class="text-muted mb-3">Recall</h6>
+                                    <div class="display-4 fw-bold text-primary mb-0">
+                                        {{ (metrics.recall * 100)|round|int }}%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 col-sm-6 mb-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center py-4">
+                                    <h6 class="text-muted mb-3">F1 Score</h6>
+                                    <div class="display-4 fw-bold text-primary mb-0">
+                                        {{ (metrics.f1 * 100)|round|int }}%
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <!-- Regression Metrics -->
+                        <div class="col-md-3 col-sm-6 mb-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center py-4">
+                                    <h6 class="text-muted mb-3">R² Score</h6>
+                                    <div class="display-4 fw-bold text-primary mb-0">
+                                        {{ metrics.r2|round(2) }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 col-sm-6 mb-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center py-4">
+                                    <h6 class="text-muted mb-3">MSE</h6>
+                                    <div class="display-4 fw-bold text-primary mb-0">
+                                        {{ metrics.mse|round(2) }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 col-sm-6 mb-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center py-4">
+                                    <h6 class="text-muted mb-3">RMSE</h6>
+                                    <div class="display-4 fw-bold text-primary mb-0">
+                                        {{ metrics.rmse|round(2) }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-3 col-sm-6 mb-4">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center py-4">
+                                    <h6 class="text-muted mb-3">MAE</h6>
+                                    <div class="display-4 fw-bold text-primary mb-0">
+                                        {{ metrics.mae|round(2) }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="text-center">
+                        <a href="{{ url_for('project.model_results', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-primary">
+                            <i class="fas fa-chart-bar me-2"></i>View Detailed Results
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("Document loaded, initializing training monitor...");
+    
+    // Variables to track training status
+    let checkingStatus = false;
+    let isRedirecting = false;
+    const trainingLogs = document.getElementById('training-logs');
+    const startTime = new Date();
+    
+    // Function to update the elapsed time
+    function updateElapsedTime() {
+        const timeElement = document.getElementById('timeElapsed');
+        if (timeElement) {
+            const now = new Date();
+            const elapsed = Math.floor((now - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            timeElement.textContent = `Elapsed: ${minutes}m ${seconds}s`;
+        }
+    }
+    
+    // Set up timer for elapsed time
+    const timeInterval = setInterval(updateElapsedTime, 1000);
+    
+    // Function to check training status
+    function checkTrainingStatus() {
+        if (checkingStatus || isRedirecting) return;
+        
+        checkingStatus = true;
+        console.log("Checking training status...");
+        
+        // Make AJAX request to get status
+        fetch("{{ url_for('project.training_status', experiment_id=experiment.id, model_run_id=model_run.id) }}")
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log("Received status:", data.status);
+                
+                // Update logs
+                if (trainingLogs && data.logs) {
+                    trainingLogs.textContent = data.logs;
+                    trainingLogs.scrollTop = trainingLogs.scrollHeight;
+                }
+                
+                // Check if training is complete
+                if (data.status === 'completed' && !isRedirecting) {
+                    console.log("Training complete! Preparing to redirect...");
+                    
+                    // Update status display
+                    const statusElement = document.getElementById('training-status');
+                    if (statusElement) {
+                        statusElement.textContent = 'Training completed successfully!';
+                        statusElement.className = 'alert alert-success';
+                    }
+                    
+                    // Set redirecting flag
+                    isRedirecting = true;
+                    
+                    // Clear intervals
+                    clearInterval(statusInterval);
+                    clearInterval(timeInterval);
+                    
+                    // Show success message and redirect
+                    console.log("Redirecting to results page in 2 seconds...");
+                    setTimeout(function() {
+                        window.location.href = "{{ url_for('project.model_results', experiment_id=experiment.id, model_run_id=model_run.id) }}";
+                    }, 2000);
+                }
+                else if (data.status === 'failed') {
+                    console.log("Training failed!");
+                    
+                    // Update status display
+                    const statusElement = document.getElementById('training-status');
+                    if (statusElement) {
+                        statusElement.textContent = 'Training failed. See logs for details.';
+                        statusElement.className = 'alert alert-danger';
+                    }
+                    
+                    // Clear intervals
+                    clearInterval(statusInterval);
+                    clearInterval(timeInterval);
+                }
+                
+                // Reset checking flag
+                checkingStatus = false;
+            })
+            .catch(error => {
+                console.error("Error checking status:", error);
+                checkingStatus = false;
+            });
+    }
+    
+    // Initial check
+    checkTrainingStatus();
+    
+    // Set interval for periodic checks
+    const statusInterval = setInterval(checkTrainingStatus, 3000);
+    
+    // Clean up on page unload
+    window.addEventListener('beforeunload', function() {
+        clearInterval(statusInterval);
+        clearInterval(timeInterval);
+    });
+});
+</script>
+{% endblock %}

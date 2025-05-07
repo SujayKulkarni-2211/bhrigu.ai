@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block title %}Deploy Model API - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.model_results', experiment_id=experiment.id, model_run_id=model_run.id) }}">{{ model_run.algorithm }} Results</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Deploy API</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Deploy {{ model_run.algorithm }} as API</h2>
+            <p class="text-muted">Create a REST API for making predictions with your trained model</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Deploy API Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">API Configuration</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex">
+                            <i class="fas fa-info-circle fa-lg me-3 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1">About API Deployment</h6>
+                                <p class="mb-0">Deploying your model as an API allows you to make predictions via HTTP requests. Your model will be hosted on our secure servers and can be accessed using the API key generated during deployment.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="mb-3">Model Details</h6>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <th scope="row" style="width: 30%">Model Type</th>
+                                        <td>
+                                            <span class="badge bg-{{ 'primary' if model_run.model_type == 'classical' else 'warning' if model_run.model_type == 'quantum' else 'info' }}">
+                                                {{ model_run.model_type|capitalize }} Model
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Algorithm</th>
+                                        <td>{{ model_run.algorithm }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Problem Type</th>
+                                        <td>{{ experiment.problem_type|capitalize }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Performance</th>
+                                        <td>
+                                            {% if model_run.metrics %}
+                                            {% set metrics = json.loads(model_run.metrics) %}
+                                            {% if experiment.problem_type == 'classification' %}
+                                            Accuracy: {{ (metrics.accuracy * 100)|round(2) }}%
+                                            {% else %}
+                                            R² Score: {{ metrics.r2|round(3) }}
+                                            {% endif %}
+                                            {% else %}
+                                            Not available
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Input Features</th>
+                                        <td>{{ json.loads(experiment.feature_columns)|length }} features</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('project.deploy_model_api', experiment_id=experiment.id, model_run_id=model_run.id) }}">
+                        <div class="mb-4">
+                            <h6 class="mb-3">API Settings</h6>
+                            
+                            <div class="mb-3">
+                                <label for="api_name" class="form-label">API Name</label>
+                                <input type="text" class="form-control" id="api_name" name="api_name" 
+                                       value="{{ experiment.name|lower|replace(' ', '-') }}-{{ model_run.algorithm|lower }}-api">
+                                <div class="form-text">This will be used in your API endpoint URL.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="version" class="form-label">Version</label>
+                                <select class="form-select" id="version" name="version">
+                                    <option value="v1" selected>v1</option>
+                                    <option value="v2">v2</option>
+                                    <option value="v3">v3</option>
+                                </select>
+                                <div class="form-text">Version of your API. You can deploy multiple versions of the same model.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="access_level" class="form-label">Access Level</label>
+                                <select class="form-select" id="access_level" name="access_level">
+                                    <option value="private" selected>Private (API key required)</option>
+                                    <option value="public">Public (No API key required)</option>
+                                </select>
+                                <div class="form-text">Controls who can access your API. Private APIs require an API key for access.</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="request_limit" class="form-label">Monthly Request Limit</label>
+                                <select class="form-select" id="request_limit" name="request_limit">
+                                    <option value="1000">1,000 requests/month</option>
+                                    <option value="5000">5,000 requests/month</option>
+                                    <option value="10000" selected>10,000 requests/month</option>
+                                    <option value="50000">50,000 requests/month (Pro)</option>
+                                    <option value="100000">100,000 requests/month (Pro)</option>
+                                </select>
+                                <div class="form-text">Maximum number of requests allowed per month. Higher limits are available with Pro subscription.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h6 class="mb-3">Advanced Options</h6>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="enable_cors" name="enable_cors" checked>
+                                <label class="form-check-label" for="enable_cors">
+                                    Enable CORS (Cross-Origin Resource Sharing)
+                                </label>
+                                <div class="form-text">Allows your API to be called from web applications on different domains.</div>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="enable_caching" name="enable_caching">
+                                <label class="form-check-label" for="enable_caching">
+                                    Enable Response Caching
+                                </label>
+                                <div class="form-text">Caches identical requests to improve performance and reduce API usage.</div>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="enable_logging" name="enable_logging" checked>
+                                <label class="form-check-label" for="enable_logging">
+                                    Enable Request Logging
+                                </label>
+                                <div class="form-text">Logs all API requests for monitoring and debugging purposes.</div>
+                            </div>
+                            
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="enable_versioning" name="enable_versioning">
+                                <label class="form-check-label" for="enable_versioning">
+                                    Enable Input Schema Versioning
+                                </label>
+                                <div class="form-text">Maintains backward compatibility when input features change.</div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-light mb-4">
+                            <div class="d-flex">
+                                <i class="fas fa-lightbulb text-warning fa-lg me-3 mt-1"></i>
+                                <div>
+                                    <h6 class="mb-1">API Usage</h6>
+                                    <p class="mb-0">After deployment, you'll receive an API key and endpoint information. Your API will be accessible immediately, and you can monitor usage and performance in your dashboard.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary" id="deployButton">
+                                <i class="fas fa-cloud-upload-alt me-2"></i>Deploy API
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- API Benefits Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Benefits of API Deployment</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex">
+                            <div class="feature-icon-small bg-primary-light text-primary me-3 mt-1">
+                                <i class="fas fa-code"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Easy Integration</h6>
+                                <p class="text-muted small mb-0">Integrate your model into any application using simple REST API calls.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex">
+                            <div class="feature-icon-small bg-success-light text-success me-3 mt-1">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Scalable Infrastructure</h6>
+                                <p class="text-muted small mb-0">Your API automatically scales to handle various levels of traffic.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex">
+                            <div class="feature-icon-small bg-info-light text-info me-3 mt-1">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Secure Access</h6>
+                                <p class="text-muted small mb-0">API keys and authentication keep your model secure.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex">
+                            <div class="feature-icon-small bg-warning-light text-warning me-3 mt-1">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Usage Analytics</h6>
+                                <p class="text-muted small mb-0">Monitor API usage, performance, and error rates in real-time.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- API Usage Examples Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Usage Examples</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">After deployment, you can call your API using code like:</p>
+                    
+                    <div class="mb-3">
+                        <h6 class="mb-2">Python</h6>
+                        <pre class="bg-light p-3 rounded"><code>import requests
+import json
+
+url = "https://api.bhrigu.ai/predict/v1/{your-api-name}"
+headers = {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer {your-api-key}"
+}
+
+data = {
+    "features": [
+        # Your feature values here
+        {% for feature in json.loads(experiment.feature_columns) %}
+        # {{ feature }}: value,
+        {% endfor %}
+    ]
+}
+
+response = requests.post(url, headers=headers, json=data)
+prediction = response.json()
+print(prediction)</code></pre>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="mb-2">JavaScript</h6>
+                        <pre class="bg-light p-3 rounded"><code>fetch('https://api.bhrigu.ai/predict/v1/{your-api-name}', {
+    method: 'POST',
+    headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer {your-api-key}'
+    },
+    body: JSON.stringify({
+        features: [
+            // Your feature values here
+        ]
+    })
+})
+.then(response => response.json())
+.then(prediction => console.log(prediction))
+.catch(error => console.error('Error:', error));</code></pre>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Pricing Information Card -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">API Hosting Plan</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <span class="badge bg-success px-3 py-2 mb-2">API Hosting Enabled</span>
+                        <h4 class="mb-1">30-Day Hosting</h4>
+                        <p class="text-muted mb-0">Your plan includes API hosting for 30 days</p>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <h6 class="mb-2">Plan Features</h6>
+                        <ul class="mb-0">
+                            <li class="mb-2">10,000 requests per month</li>
+                            <li class="mb-2">Real-time monitoring</li>
+                            <li class="mb-2">Secure access with API keys</li>
+                            <li class="mb-2">Response time metrics</li>
+                            <li>Up to 5 concurrent models</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Need more? <a href="{{ url_for('payment.upgrade_to_pro') }}">Upgrade to Pro</a> for increased request limits, longer hosting period, and additional features.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Show loader when deploying API
+    document.getElementById('deployButton').addEventListener('click', function() {
+        showLoader('Deploying model as API. This may take a moment...');
+    });
+    
+    // Toggle certain options based on access level
+    document.getElementById('access_level').addEventListener('change', function() {
+        const enableCors = document.getElementById('enable_cors');
+        
+        if (this.value === 'public') {
+            enableCors.checked = true;
+            enableCors.disabled = true;
+        } else {
+            enableCors.disabled = false;
+        }
+    });
+</script>
+{% endblock %}

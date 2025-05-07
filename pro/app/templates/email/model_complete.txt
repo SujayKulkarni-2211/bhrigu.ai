@@ -1,0 +1,11 @@
+Hello {{ user_name }},
+
+Your model "{{ model_name }}" has been successfully trained and is ready for use.
+
+You can now access the model and explore its results in your Bhrigu AI dashboard:
+{{ dashboard_url }}
+
+Thank you for using Bhrigu AI!
+
+Best regards,
+The Bhrigu AI Team

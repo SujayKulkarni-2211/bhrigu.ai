@@ -1,0 +1,13 @@
+Hello,
+
+Thank you for registering with Bhrigu AI.
+
+To complete your registration, verify your email using this link:
+{{ verification_url }}
+
+The link will expire in 24 hours.
+
+If you did not sign up, you can ignore this message.
+
+Best,
+The Bhrigu AI Team

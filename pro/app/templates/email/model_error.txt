@@ -1,0 +1,10 @@
+Hello {{ user_name }},
+
+We encountered an error while training your model "{{ model_name }}".
+
+Please check your data and configuration, then try again.
+
+If the issue persists, contact support at support@bhrigu.ai.
+
+Best regards,
+The Bhrigu AI Team

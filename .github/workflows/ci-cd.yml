@@ -1,0 +1,83 @@
+name: CI/CD Pipeline for Bhrigu.AI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: docker.io
+  GUEST_IMAGE_NAME: ${{ github.repository }}/bhrigu-guest
+  PRO_IMAGE_NAME: ${{ github.repository }}/bhrigu-pro
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+        
+    # Guest container tests
+    - name: Install Guest dependencies
+      run: |
+        cd guest
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+        
+    - name: Run Guest tests
+      run: |
+        cd guest
+        python -m pytest tests/test.py -v --junitxml=guest-test-report.xml
+      continue-on-error: true
+        
+    # Pro container tests
+    - name: Install Pro dependencies
+      run: |
+        cd pro
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest pytest-cov
+        
+    - name: Run Pro tests
+      run: |
+        cd pro
+        python -m pytest tests/test.py -v --junitxml=pro-test-report.xml
+      continue-on-error: true
+      
+    - name: Generate test summary
+      run: |
+        cd guest
+        python generate_test_summary.py --guest-report ../guest-test-report.xml --pro-report ../pro-test-report.xml
+        
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+      
+    - name: Login to DockerHub
+      uses: docker/login-action@v2
+      if: github.event_name != 'pull_request'
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        
+    - name: Build and push Guest image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./guest
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ env.REGISTRY }}/${{ env.GUEST_IMAGE_NAME }}:latest,${{ env.REGISTRY }}/${{ env.GUEST_IMAGE_NAME }}:${{ github.sha }}
+        
+    - name: Build and push Pro image
+      uses: docker/build-push-action@v4
+      with:
+        context: ./pro
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ env.REGISTRY }}/${{ env.PRO_IMAGE_NAME }}:latest,${{ env.REGISTRY }}/${{ env.PRO_IMAGE_NAME }}:${{ github.sha }}

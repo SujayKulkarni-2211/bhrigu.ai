@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-2">Welcome, {{ user.get_full_name() }}</h1>
+            <p class="text-muted">Your intelligent machine learning assistant</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <a href="{{ url_for('dashboard.new_project') }}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>New Project
+            </a>
+        </div>
+    </div>
+    
+    <!-- Status Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+            <div class="card hover-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">Total Projects</h6>
+                            <h2 class="card-title mb-0">{{ status_counts.total }}</h2>
+                        </div>
+                        <div class="feature-icon-small bg-primary-light text-primary">
+                            <i class="fas fa-folder"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+            <div class="card hover-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">In Progress</h6>
+                            <h2 class="card-title mb-0">{{ status_counts.in_progress }}</h2>
+                        </div>
+                        <div class="feature-icon-small bg-info-light text-info">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6 mb-3 mb-md-0">
+            <div class="card hover-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">Completed</h6>
+                            <h2 class="card-title mb-0">{{ status_counts.completed }}</h2>
+                        </div>
+                        <div class="feature-icon-small bg-success-light text-success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 col-sm-6">
+            <div class="card hover-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-subtitle mb-2 text-muted">Failed</h6>
+                            <h2 class="card-title mb-0">{{ status_counts.failed }}</h2>
+                        </div>
+                        <div class="feature-icon-small bg-danger-light text-danger">
+                            <i class="fas fa-exclamation-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pro Status -->
+    {% if is_pro %}
+    <div class="card bg-primary text-white mb-4">
+        <div class="card-body">
+            <div class="d-flex align-items-center">
+                <div class="feature-icon-small   text-primary me-3">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <div>
+                    <h5 class="mb-1">Pro Subscription Active</h5>
+                    <p class="mb-0">Your subscription will renew in {{ pro_days_remaining }} days</p>
+                </div>
+                <div class="ms-auto">
+                    <a href="{{ url_for('payment.transaction_history') }}" class="btn btn-outline-light btn-sm">
+                        Manage Subscription
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card bg-light mb-4">
+        <div class="card-body">
+            <div class="d-flex align-items-center">
+                <div class="feature-icon-small bg-primary text-white me-3">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <div>
+                    <h5 class="mb-1">Upgrade to Pro</h5>
+                    <p class="mb-0">Get access to advanced models, unlimited projects, and more features</p>
+                </div>
+                <div class="ms-auto">
+                    <a href="{{ url_for('payment.upgrade_to_pro') }}" class="btn btn-primary btn-sm">
+                        Upgrade Now
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Projects List -->
+    <div class="card shadow-sm">
+        <div class="card-header py-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Your Projects</h5>
+                {% if can_create_new %}
+                <a href="{{ url_for('dashboard.new_project') }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus me-1"></i>New Project
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body p-0">
+            {% if projects %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Project Name</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for project in projects %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('project.view', experiment_id=project.id) }}" class="text-decoration-none fw-medium">
+                                    {{ project.name }}
+                                </a>
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ getStatusColor(project.status) }}">
+                                    {{ project.status.replace('_', ' ').title() }}
+                                </span>
+                            </td>
+                            <td>{{ project.created_at.strftime('%b %d, %Y') }}</td>
+                            <td>{{ project.updated_at.strftime('%b %d, %Y') }}</td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('project.view', experiment_id=project.id) }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-outline-danger" 
+                                            onclick="confirmDelete('{{ project.id }}', '{{ project.name }}')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <img src="{{ url_for('static', filename='images/empty-state.svg') }}" alt="No projects" style="width: 150px; margin-bottom: 20px;">
+                <h5>No projects yet</h5>
+                <p class="text-muted">Create your first machine learning project to get started</p>
+                <a href="{{ url_for('dashboard.new_project') }}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Create First Project
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteProjectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Project</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the project <span id="projectNameToDelete" class="fw-bold"></span>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteProjectForm" method="POST" action="">
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function confirmDelete(projectId, projectName) {
+        document.getElementById('projectNameToDelete').textContent = projectName;
+        const form = document.getElementById('deleteProjectForm');
+        form.action = "{{ url_for('dashboard.delete_project', experiment_id='') }}" + projectId;
+        
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteProjectModal'));
+        deleteModal.show();
+    }
+</script>
+{% endblock %}

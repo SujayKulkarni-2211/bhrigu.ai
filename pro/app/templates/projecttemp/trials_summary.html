@@ -1,0 +1,496 @@
+{% extends "base.html" %}
+
+{% block title %}Trial Summary - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Model Comparison</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Model Comparison</h2>
+            <p class="text-muted">Compare performance across different models for {{ experiment.name }}</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-download me-2"></i>Export
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportDropdown">
+                    <li><a class="dropdown-item" href="{{ url_for('project.download_comparison_report', experiment_id=experiment.id) }}">
+                        <i class="fas fa-file-pdf me-2"></i>Download Comparison Report
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" id="exportChartBtn">
+                        <i class="fas fa-chart-bar me-2"></i>Export Chart as PNG
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Performance Comparison Chart -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Performance Comparison</h5>
+                </div>
+                <div class="card-body">
+                    {% if model_runs|selectattr('status', 'eq', 'completed')|list|length > 0 %}
+                    <div class="chart-container" style="position: relative; height:350px;">
+                        <canvas id="modelComparisonChart"></canvas>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6 class="mb-2">Key Insights:</h6>
+                        <ul class="text-muted">
+                            {% if comparison_data|length > 0 %}
+                            <li>
+                                {% set best_model = comparison_data|sort(attribute=('metrics.accuracy' if experiment.problem_type == 'classification' else 'metrics.r2'), reverse=True)|first %}
+                                <strong>Best Model:</strong> {{ best_model.algorithm }} with 
+                                {% if experiment.problem_type == 'classification' %}
+                                {{ (best_model.metrics.accuracy * 100)|round(2) }}% accuracy
+                                {% else %}
+                                {{ best_model.metrics.r2|round(3) }} R² score
+                                {% endif %}
+                            </li>
+                            <li>
+                                <strong>Training Time:</strong> 
+                                {% set fastest_model = model_runs|selectattr('status', 'eq', 'completed')|selectattr('started_at', 'ne', None)|selectattr('completed_at', 'ne', None)|sort(attribute=lambda x: (x.completed_at - x.started_at).total_seconds())|first %}
+                                {{ fastest_model.algorithm }} trained the fastest in {{ ((fastest_model.completed_at - fastest_model.started_at).total_seconds() / 60)|round(1) }} minutes
+                            </li>
+                            <li>
+                                <strong>Resource Usage:</strong> Consider the tradeoff between model complexity and performance when deploying
+                            </li>
+                            {% else %}
+                            <li>No comparison data available yet</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No completed models found</h5>
+                        <p class="text-muted">Train some models to enable comparison</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Models Table -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Model Details</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Model</th>
+                                    <th>Status</th>
+                                    <th>
+                                        {% if experiment.problem_type == 'classification' %}
+                                        Accuracy
+                                        {% else %}
+                                        R² Score
+                                        {% endif %}
+                                    </th>
+                                    <th>Training Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for model in model_runs|sort(attribute='created_at', reverse=True) %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="feature-icon-small bg-{{ 'primary' if model.model_type == 'classical' else 'warning' if model.model_type == 'quantum' else 'info' }}-light text-{{ 'primary' if model.model_type == 'classical' else 'warning' if model.model_type == 'quantum' else 'info' }} me-2">
+                                                <i class="fas fa-{{ 'cogs' if model.model_type == 'classical' else 'atom' if model.model_type == 'quantum' else 'brain' }}"></i>
+                                            </div>
+                                            <div>
+                                                <span class="fw-medium">{{ model.algorithm }}</span>
+                                                <span class="badge bg-light text-dark ms-1">{{ model.model_type|capitalize }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ getStatusColor(model.status) }}">
+                                            {{ model.status.replace('_', ' ').title() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if model.metrics and model.status == 'completed' %}
+                                            {% set metrics = json.loads(model.metrics) %}
+                                            {% if experiment.problem_type == 'classification' %}
+                                                {% if 'accuracy' in metrics %}
+                                                    {{ (metrics.accuracy * 100)|round(2) }}%
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            {% else %}
+                                                {% if 'r2' in metrics %}
+                                                    {{ metrics.r2|round(3) }}
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if model.started_at and model.completed_at and model.status == 'completed' %}
+                                        {{ ((model.completed_at - model.started_at).total_seconds() / 60)|round(1) }} mins
+                                        {% else %}
+                                        -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            {% if model.status == 'completed' %}
+                                            <a href="{{ url_for('project.model_results', experiment_id=experiment.id, model_run_id=model.id) }}" class="btn btn-outline-primary">
+                                                <i class="fas fa-eye me-1"></i>View
+                                            </a>
+                                            <button type="button" class="btn btn-outline-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <span class="visually-hidden">Toggle Dropdown</span>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="{{ url_for('project.download_model', experiment_id=experiment.id, model_run_id=model.id) }}">
+                                                    <i class="fas fa-download me-2"></i>Download Model
+                                                </a></li>
+                                                <li><a class="dropdown-item" href="{{ url_for('project.download_model_report', experiment_id=experiment.id, model_run_id=model.id) }}">
+                                                    <i class="fas fa-file-pdf me-2"></i>Download Report
+                                                </a></li>
+                                                {% if not model.api_endpoint %}
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><a class="dropdown-item" href="{{ url_for('project.deploy_model_api', experiment_id=experiment.id, model_run_id=model.id) }}">
+                                                    <i class="fas fa-server me-2"></i>Deploy as API
+                                                </a></li>
+                                                {% endif %}
+                                            </ul>
+                                            {% elif model.status == 'training' or model.status == 'tuning' %}
+                                            <a href="{{ url_for('project.train_model', experiment_id=experiment.id, model_run_id=model.id) }}" class="btn btn-outline-info">
+                                                <i class="fas fa-sync-alt me-1"></i>View Progress
+                                            </a>
+                                            {% else %}
+                                            <a href="{{ url_for('project.train_model', experiment_id=experiment.id, model_run_id=model.id) }}" class="btn btn-outline-secondary">
+                                                <i class="fas fa-exclamation-circle me-1"></i>View Details
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer   text-center py-3">
+                    <a href="{{ url_for('project.model_recommendations', experiment_id=experiment.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-plus-circle me-2"></i>Add More Models
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Project Information -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Project Information</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Project:</div>
+                                <div class="col-7 fw-medium">{{ experiment.name }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Problem Type:</div>
+                                <div class="col-7">{{ experiment.problem_type|capitalize }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Models Tested:</div>
+                                <div class="col-7">{{ model_runs|length }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Completed:</div>
+                                <div class="col-7">{{ model_runs|selectattr('status', 'eq', 'completed')|list|length }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Dataset Size:</div>
+                                <div class="col-7">{{ experiment.dataset_info.num_rows if experiment.dataset_info else 'N/A' }} rows</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Created On:</div>
+                                <div class="col-7">{{ experiment.created_at.strftime('%b %d, %Y') }}</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Additional Metrics -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Advanced Metrics</h5>
+                </div>
+                <div class="card-body">
+                    {% if experiment.problem_type == 'classification' %}
+                    <div class="chart-container mb-4" style="position: relative; height:200px;">
+                        <canvas id="f1ScoreChart"></canvas>
+                    </div>
+                    <p class="text-muted small">F1 Score shows the harmonic mean of precision and recall, which is particularly useful for imbalanced datasets.</p>
+                    {% else %}
+                    <div class="chart-container mb-4" style="position: relative; height:200px;">
+                        <canvas id="rmseChart"></canvas>
+                    </div>
+                    <p class="text-muted small">RMSE (Root Mean Squared Error) measures the standard deviation of prediction errors. Lower values indicate better fit.</p>
+                    {% endif %}
+                    
+                    <hr class="my-3">
+                    
+                    <div class="d-grid">
+                        <a href="{{ url_for('project.k_fold_evaluation', experiment_id=experiment.id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-code-branch me-2"></i>Run K-Fold Cross Validation
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recommendation Card -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb text-warning me-2"></i>Recommendations</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="mb-2">Best Model Selection</h6>
+                        <p class="text-muted small mb-0">Consider not just accuracy but also inference time, model size, and interpretability when selecting your final model.</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="mb-2">Ensemble Techniques</h6>
+                        <p class="text-muted small mb-0">For production use, consider combining predictions from multiple top models to improve robustness.</p>
+                    </div>
+                    <div>
+                        <h6 class="mb-2">Hyperparameter Tuning</h6>
+                        <p class="text-muted small mb-0">Fine-tune the best performing model with advanced optimization to squeeze out additional performance.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Model Comparison Chart
+        {% if model_runs|selectattr('status', 'eq', 'completed')|list|length > 0 %}
+        const modelComparisonCtx = document.getElementById('modelComparisonChart').getContext('2d');
+        
+        // Data from backend
+        const algorithms = {{ algorithms|safe }};
+        const scores = {{ scores|safe }};
+        
+        // Create chart
+        const modelComparisonChart = new Chart(modelComparisonCtx, {
+            type: 'bar',
+            data: {
+                labels: algorithms,
+                datasets: [{
+                    label: '{{ "Accuracy (%)" if experiment.problem_type == "classification" else "R² Score" }}',
+                    data: scores.map(score => {{ "score * 100" if experiment.problem_type == "classification" else "score" }}),
+                    backgroundColor: algorithms.map(algo => {
+                        if (algo.includes('RandomForest') || algo.includes('Boosting') || algo.includes('Tree')) {
+                            return 'rgba(54, 162, 235, 0.7)';  // Blue for tree-based
+                        } else if (algo.includes('Regression') || algo.includes('Linear')) {
+                            return 'rgba(255, 99, 132, 0.7)';  // Red for linear models
+                        } else if (algo.includes('SVM') || algo.includes('SVC') || algo.includes('SVR')) {
+                            return 'rgba(255, 206, 86, 0.7)';  // Yellow for SVM
+                        } else if (algo.includes('Neural') || algo.includes('MLP') || algo.includes('LSTM')) {
+                            return 'rgba(153, 102, 255, 0.7)';  // Purple for neural networks
+                        } else if (algo.startsWith('Q')) {
+                            return 'rgba(75, 192, 192, 0.7)';  // Green for quantum models
+                        } else {
+                            return 'rgba(201, 203, 207, 0.7)';  // Grey for others
+                        }
+                    }),
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: {{ "true" if experiment.problem_type == "classification" else "false" }},
+                        title: {
+                            display: true,
+                            text: '{{ "Accuracy (%)" if experiment.problem_type == "classification" else "R² Score" }}'
+                        }{% if experiment.problem_type == "classification" %},
+                        max: 100{% endif %}
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Algorithm'
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return '{{ "Accuracy: " if experiment.problem_type == "classification" else "R² Score: " }}' + 
+                                    context.raw.toFixed({{ "2" if experiment.problem_type == "classification" else "4" }}) + 
+                                    '{{ "%" if experiment.problem_type == "classification" else "" }}';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Export chart as PNG
+        document.getElementById('exportChartBtn').addEventListener('click', function() {
+            // Create a temporary link
+            const link = document.createElement('a');
+            link.download = '{{ experiment.name }}_model_comparison.png';
+            link.href = modelComparisonChart.toBase64Image();
+            link.click();
+        });
+        
+        // Additional metrics charts
+        {% if experiment.problem_type == 'classification' %}
+        // F1 Score Chart
+        const f1ScoreCtx = document.getElementById('f1ScoreChart').getContext('2d');
+        
+        // Get F1 scores from completed models
+        const f1Models = [];
+        const f1Scores = [];
+        
+        {% for model in model_runs|selectattr('status', 'eq', 'completed') %}
+        {% if model.metrics %}
+        {% set metrics = json.loads(model.metrics) %}
+        {% if 'f1' in metrics %}
+        f1Models.push('{{ model.algorithm }}');
+        f1Scores.push({{ metrics.f1 * 100 }});
+        {% endif %}
+        {% endif %}
+        {% endfor %}
+        
+        if (f1Models.length > 0) {
+            new Chart(f1ScoreCtx, {
+                type: 'horizontalBar',
+                data: {
+                    labels: f1Models,
+                    datasets: [{
+                        label: 'F1 Score (%)',
+                        data: f1Scores,
+                        backgroundColor: 'rgba(255, 159, 64, 0.7)',
+                        borderColor: 'rgba(255, 159, 64, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'F1 Score (%)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        {% else %}
+        // RMSE Chart
+        const rmseCtx = document.getElementById('rmseChart').getContext('2d');
+        
+        // Get RMSE values from completed models
+        const rmseModels = [];
+        const rmseValues = [];
+        
+        {% for model in model_runs|selectattr('status', 'eq', 'completed') %}
+        {% if model.metrics %}
+        {% set metrics = json.loads(model.metrics) %}
+        {% if 'rmse' in metrics %}
+        rmseModels.push('{{ model.algorithm }}');
+        rmseValues.push({{ metrics.rmse }});
+        {% endif %}
+        {% endif %}
+        {% endfor %}
+        
+        if (rmseModels.length > 0) {
+            new Chart(rmseCtx, {
+                type: 'horizontalBar',
+                data: {
+                    labels: rmseModels,
+                    datasets: [{
+                        label: 'RMSE',
+                        data: rmseValues,
+                        backgroundColor: 'rgba(75, 192, 192, 0.7)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'RMSE (lower is better)'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        {% endif %}
+        {% endif %}
+    });
+</script>
+{% endblock %}

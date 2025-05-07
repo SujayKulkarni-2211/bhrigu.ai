@@ -1,0 +1,387 @@
+<!-- app/templates/configure_hyperparameters.html -->
+{% extends 'base.html' %}
+
+{% block title %}Configure Hyperparameters - Bhrigu.ai{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{{ url_for('main.index') }}">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.upload') }}">Upload</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.analyze', experiment_id=experiment.id) }}">Analyze</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('main.hyperparameter_choice', experiment_id=experiment.id, model_id=model_run.id) }}">Choose Approach</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Configure Hyperparameters</li>
+            </ol>
+        </nav>
+        
+        <h2 class="mb-4">
+            <i class="fas fa-cogs text-primary me-2"></i> Configure Hyperparameters for {{ model_run.algorithm }}
+        </h2>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Main Content -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary-light py-3">
+                <h3 class="card-title mb-0">
+                    {% if tuning_completed %}
+                    Best Hyperparameters from Tuning
+                    {% else %}
+                    Configure Hyperparameters
+                    {% endif %}
+                </h3>
+            </div>
+            <div class="card-body">
+                {% if tuning_completed %}
+                <div class="alert alert-success mb-4">
+                    <div class="d-flex">
+                        <div class="me-3">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                        <div>
+                            <h5 class="alert-heading">Tuning Complete</h5>
+                            <p class="mb-0">Hyperparameter tuning has successfully completed. The best parameters have been selected below. You can review and adjust if needed before final training.</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tuning Metrics Preview -->
+                <div class="card bg-light mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-chart-line text-primary me-2"></i> Tuning Results Preview
+                        </h5>
+                        <div class="row g-3 mt-2">
+                            {% if experiment.problem_type == 'classification' %}
+                            <div class="col-md-3">
+                                <div class="metric-card text-center p-3 rounded   shadow-sm">
+                                    <h6 class="text-muted mb-1">Best Accuracy</h6>
+                                    <h3 class="mb-0 text-primary">{{ "%.4f"|format(tuning_metrics.accuracy) }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="metric-card text-center p-3 rounded   shadow-sm">
+                                    <h6 class="text-muted mb-1">Best F1 Score</h6>
+                                    <h3 class="mb-0 text-primary">{{ "%.4f"|format(tuning_metrics.f1) }}</h3>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="col-md-4">
+                                <div class="metric-card text-center p-3 rounded   shadow-sm">
+                                    <h6 class="text-muted mb-1">Best MSE</h6>
+                                    <h3 class="mb-0 text-primary">{{ "%.4f"|format(tuning_metrics.mse) }}</h3>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="metric-card text-center p-3 rounded   shadow-sm">
+                                    <h6 class="text-muted mb-1">Best R² Score</h6>
+                                    <h3 class="mb-0 text-primary">{{ "%.4f"|format(tuning_metrics.r2) }}</h3>
+                                </div>
+                            </div>
+                            {% endif %}
+                            <div class="col-md-6">
+                                <div class="d-grid">
+                                    <a href="{{ url_for('main.download_tuning_report', model_run_id=model_run.id) }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-download me-2"></i> Download Tuning Report
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <form method="post">
+                    {% if model_run.algorithm == 'RandomForest' or model_run.algorithm == 'RandomForestRegressor' %}
+                    <!-- RandomForest Hyperparameters -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="n_estimators" name="n_estimators" min="10" max="1000" value="{{ hyperparams.n_estimators|default(100) }}">
+                                <label for="n_estimators">Number of Trees</label>
+                            </div>
+                            <div class="form-text">Number of trees in the forest (10-1000)</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="max_depth" name="max_depth" min="1" max="100" value="{{ hyperparams.max_depth|default(10) }}">
+                                <label for="max_depth">Maximum Depth</label>
+                            </div>
+                            <div class="form-text">Maximum depth of each tree</div>
+                        </div>
+                        {% if model_run.algorithm == 'RandomForest' %}
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="criterion" name="criterion">
+                                    <option value="gini" {% if hyperparams.criterion == 'gini' %}selected{% endif %}>Gini</option>
+                                    <option value="entropy" {% if hyperparams.criterion == 'entropy' %}selected{% endif %}>Entropy</option>
+                                </select>
+                                <label for="criterion">Split Criterion</label>
+                            </div>
+                            <div class="form-text">Function to measure quality of split</div>
+                        </div>
+                        {% else %}
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="criterion" name="criterion">
+                                    <option value="squared_error" {% if hyperparams.criterion == 'squared_error' %}selected{% endif %}>Squared Error</option>
+                                    <option value="absolute_error" {% if hyperparams.criterion == 'absolute_error' %}selected{% endif %}>Absolute Error</option>
+                                </select>
+                                <label for="criterion">Split Criterion</label>
+                            </div>
+                            <div class="form-text">Function to measure quality of split</div>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="min_samples_split" name="min_samples_split" min="2" max="20" value="{{ hyperparams.min_samples_split|default(2) }}">
+                                <label for="min_samples_split">Min Samples Split</label>
+                            </div>
+                            <div class="form-text">Minimum samples required to split a node</div>
+                        </div>
+                    </div>
+                    
+                    {% elif model_run.algorithm == 'LogisticRegression' %}
+                    <!-- Logistic Regression Hyperparameters -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="C" name="C" min="0.01" max="100" step="0.01" value="{{ hyperparams.C|default(1.0) }}">
+                                <label for="C">Regularization (C)</label>
+                            </div>
+                            <div class="form-text">Inverse regularization strength (smaller values = stronger regularization)</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="max_iter" name="max_iter" min="100" max="10000" step="100" value="{{ hyperparams.max_iter|default(1000) }}">
+                                <label for="max_iter">Maximum Iterations</label>
+                            </div>
+                            <div class="form-text">Maximum number of iterations for solver</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="solver" name="solver">
+                                    <option value="liblinear" {% if hyperparams.solver == 'liblinear' %}selected{% endif %}>liblinear</option>
+                                    <option value="lbfgs" {% if hyperparams.solver == 'lbfgs' %}selected{% endif %}>lbfgs</option>
+                                    <option value="saga" {% if hyperparams.solver == 'saga' %}selected{% endif %}>saga</option>
+                                </select>
+                                <label for="solver">Solver</label>
+                            </div>
+                            <div class="form-text">Algorithm for optimization</div>
+                        </div>
+                    </div>
+                    
+                    {% elif model_run.algorithm == 'LinearRegression' %}
+                    <!-- Linear Regression Hyperparameters (minimal) -->
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Linear Regression has minimal hyperparameters. The default implementation uses Ordinary Least Squares.
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="fit_intercept" name="fit_intercept">
+                                    <option value="True" {% if hyperparams.fit_intercept == True %}selected{% endif %}>Yes</option>
+                                    <option value="False" {% if hyperparams.fit_intercept == False %}selected{% endif %}>No</option>
+                                </select>
+                                <label for="fit_intercept">Fit Intercept</label>
+                            </div>
+                            <div class="form-text">Whether to calculate the intercept for this model</div>
+                        </div>
+                    </div>
+                    
+                    {% elif model_run.algorithm == 'SVC' or model_run.algorithm == 'SVR' %}
+                    <!-- SVM Hyperparameters -->
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="C" name="C" min="0.01" max="100" step="0.01" value="{{ hyperparams.C|default(1.0) }}">
+                                <label for="C">Regularization (C)</label>
+                            </div>
+                            <div class="form-text">Penalty parameter (smaller values = stronger regularization)</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <select class="form-select" id="kernel" name="kernel">
+                                    <option value="rbf" {% if hyperparams.kernel == 'rbf' %}selected{% endif %}>RBF</option>
+                                    <option value="linear" {% if hyperparams.kernel == 'linear' %}selected{% endif %}>Linear</option>
+                                    <option value="poly" {% if hyperparams.kernel == 'poly' %}selected{% endif %}>Polynomial</option>
+                                    <option value="sigmoid" {% if hyperparams.kernel == 'sigmoid' %}selected{% endif %}>Sigmoid</option>
+                                </select>
+                                <label for="kernel">Kernel Type</label>
+                            </div>
+                            <div class="form-text">Kernel function type for the algorithm</div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-floating">
+                                <select class="form-select" id="gamma" name="gamma">
+                                    <option value="scale" {% if hyperparams.gamma == 'scale' %}selected{% endif %}>Scale</option>
+                                    <option value="auto" {% if hyperparams.gamma == 'auto' %}selected{% endif %}>Auto</option>
+                                </select>
+                                <label for="gamma">Gamma</label>
+                            </div>
+                            <div class="form-text">Kernel coefficient for 'rbf', 'poly' and 'sigmoid'</div>
+                        </div>
+                    </div>
+                    
+                    {% elif model_run.algorithm == 'DecisionTree' or model_run.algorithm == 'DecisionTreeRegressor' %}
+                    <!-- Decision Tree Hyperparameters -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="max_depth" name="max_depth" min="1" max="100" value="{{ hyperparams.max_depth|default(10) }}">
+                                <label for="max_depth">Maximum Depth</label>
+                            </div>
+                            <div class="form-text">Maximum depth of the tree</div>
+                        </div>
+                        {% if model_run.algorithm == 'DecisionTree' %}
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="criterion" name="criterion">
+                                    <option value="gini" {% if hyperparams.criterion == 'gini' %}selected{% endif %}>Gini</option>
+                                    <option value="entropy" {% if hyperparams.criterion == 'entropy' %}selected{% endif %}>Entropy</option>
+                                </select>
+                                <label for="criterion">Split Criterion</label>
+                            </div>
+                            <div class="form-text">Function to measure quality of split</div>
+                        </div>
+                        {% else %}
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="criterion" name="criterion">
+                                    <option value="squared_error" {% if hyperparams.criterion == 'squared_error' %}selected{% endif %}>Squared Error</option>
+                                    <option value="absolute_error" {% if hyperparams.criterion == 'absolute_error' %}selected{% endif %}>Absolute Error</option>
+                                </select>
+                                <label for="criterion">Split Criterion</label>
+                            </div>
+                            <div class="form-text">Function to measure quality of split</div>
+                        </div>
+                        {% endif %}
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="min_samples_split" name="min_samples_split" min="2" max="20" value="{{ hyperparams.min_samples_split|default(2) }}">
+                                <label for="min_samples_split">Min Samples Split</label>
+                            </div>
+                            <div class="form-text">Minimum samples required to split a node</div>
+                        </div>
+                    </div>
+                    
+                    {% elif model_run.algorithm == 'KNN' %}
+                    <!-- KNN Hyperparameters -->
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <input type="number" class="form-control" id="n_neighbors" name="n_neighbors" min="1" max="100" value="{{ hyperparams.n_neighbors|default(5) }}">
+                                <label for="n_neighbors">Number of Neighbors</label>
+                            </div>
+                            <div class="form-text">Number of neighbors to use</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="weights" name="weights">
+                                    <option value="uniform" {% if hyperparams.weights == 'uniform' %}selected{% endif %}>Uniform</option>
+                                    <option value="distance" {% if hyperparams.weights == 'distance' %}selected{% endif %}>Distance</option>
+                                </select>
+                                <label for="weights">Weight Function</label>
+                            </div>
+                            <div class="form-text">Weight function used in prediction</div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating">
+                                <select class="form-select" id="p" name="p">
+                                    <option value="1" {% if hyperparams.p == 1 %}selected{% endif %}>Manhattan (p=1)</option>
+                                    <option value="2" {% if hyperparams.p == 2 %}selected{% endif %}>Euclidean (p=2)</option>
+                                </select>
+                                <label for="p">Distance Metric</label>
+                            </div>
+                            <div class="form-text">Power parameter for Minkowski metric</div>
+                        </div>
+                    </div>
+                    
+                    {% else %}
+                    <!-- Generic message for other algorithms -->
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Using default hyperparameters for {{ model_run.algorithm }}. Limited configuration options available.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" name="train_full_model" value="true" class="btn btn-primary">
+                            <i class="fas fa-play-circle me-2"></i> Train Model with These Parameters
+                        </button>
+                        <a href="{{ url_for('main.hyperparameter_choice', experiment_id=experiment.id, model_id=model_run.id) }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-2"></i> Back to Approach Selection
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 sticky-top" style="top: 80px;">
+            <div class="card-header bg-primary-light py-3">
+                <h3 class="card-title mb-0">About Hyperparameters</h3>
+            </div>
+            <div class="card-body">
+                <div class="mb-4">
+                    <h5 class="mb-3">What are hyperparameters?</h5>
+                    <p>Hyperparameters are configuration settings that control the behavior of a machine learning algorithm. Unlike model parameters (which are learned during training), hyperparameters must be set before training begins.</p>
+                </div>
+                
+                <div class="mb-4">
+                    {% if model_run.algorithm == 'RandomForest' or model_run.algorithm == 'RandomForestRegressor' %}
+                    <h5 class="mb-3">Key Parameters for Random Forest</h5>
+                    <dl>
+                        <dt>Number of Trees</dt>
+                        <dd>More trees typically improve performance but increase training time.</dd>
+                        <dt>Max Depth</dt>
+                        <dd>Limits how deep each tree can grow. Controls overfitting.</dd>
+                        <dt>Min Samples Split</dt>
+                        <dd>Minimum samples required to split a node. Higher values prevent overfitting.</dd>
+                    </dl>
+                    {% elif model_run.algorithm == 'LogisticRegression' %}
+                    <h5 class="mb-3">Key Parameters for Logistic Regression</h5>
+                    <dl>
+                        <dt>Regularization (C)</dt>
+                        <dd>Controls the penalty strength. Lower values = stronger regularization.</dd>
+                        <dt>Max Iterations</dt>
+                        <dd>Maximum iterations for the solver to converge.</dd>
+                        <dt>Solver</dt>
+                        <dd>Algorithm used for optimization. Different solvers work better for different datasets.</dd>
+                    </dl>
+                    {% elif model_run.algorithm == 'SVC' or model_run.algorithm == 'SVR' %}
+                    <h5 class="mb-3">Key Parameters for Support Vector Machines</h5>
+                    <dl>
+                        <dt>Regularization (C)</dt>
+                        <dd>Controls the penalty for misclassification. Higher values give more importance to misclassified points.</dd>
+                        <dt>Kernel</dt>
+                        <dd>Transforms the data into higher dimensions. Different kernels capture different relationships.</dd>
+                        <dt>Gamma</dt>
+                        <dd>Kernel coefficient. Higher values create more complex decision boundaries.</dd>
+                    </dl>
+                    {% endif %}
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-graduation-cap me-2"></i>
+                    <strong>Learning More:</strong> The optimal values depend on your specific dataset and problem. Experiment with different values or let the automatic tuning process find the best combinations.
+                </div>
+                
+                {% if tuning_completed %}
+                <div class="alert alert-success mt-3">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Tuning Complete:</strong> The parameters shown have been optimized through extensive testing on your dataset.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

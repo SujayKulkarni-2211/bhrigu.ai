@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Dataset - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Upload Dataset</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Upload Dataset</h2>
+            <p class="text-muted">Step 1: Upload a CSV or Excel file containing your data</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Dataset Upload</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('project.upload_dataset', experiment_id=experiment.id) }}" 
+                          enctype="multipart/form-data" id="uploadForm">
+                        <div class="mb-4">
+                            <label for="dataset" class="form-label">Select a CSV or Excel file</label>
+                            <input class="form-control" type="file" id="dataset" name="dataset" 
+                                   accept=".csv, .xlsx, .xls" required>
+                            <div class="form-text">
+                                Supported formats: CSV (.csv), Excel (.xlsx, .xls)
+                            </div>
+                        </div>
+                        
+                        <div class="file-preview mb-4 d-none" id="filePreview">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas fa-file-csv fa-2x me-3 text-primary"></i>
+                                        <div>
+                                            <h6 class="mb-1" id="fileName">filename.csv</h6>
+                                            <p class="mb-0 small text-muted" id="fileSize">Size: 0 KB</p>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-danger ms-auto" id="removeFile">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mb-4" role="alert">
+                            <div class="d-flex">
+                                <div class="me-3">
+                                    <i class="fas fa-info-circle fa-lg"></i>
+                                </div>
+                                <div>
+                                    <h6 class="alert-heading mb-1">Dataset Requirements</h6>
+                                    <ul class="mb-0 ps-3">
+                                        <li>Your data should have headers in the first row</li>
+                                        <li>Both categorical and numerical features are supported</li>
+                                        <li>The file should not exceed 16MB in size</li>
+                                        <li>Missing values will be handled automatically</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid mb-3">
+                            <button type="submit" class="btn btn-primary" id="uploadButton" onclick="showLoaderOnSubmit()">
+                                <i class="fas fa-upload me-2"></i>Upload Dataset
+                            </button>
+                        </div>
+                        
+                        <div class="text-center">
+                            <a href="{{ url_for('project.view', experiment_id=experiment.id) }}" class="btn btn-link text-muted">
+                                Cancel and return to project
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header  py-3">
+                    <h5 class="mb-0">Process Steps</h5>
+                </div>
+                <div class="card-body">
+                    <div class="steps">
+                        <div class="step active">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3">1</div>
+                                <div>
+                                    <h6 class="mb-1">Upload Dataset</h6>
+                                    <p class="text-muted mb-0 small">Upload your CSV or Excel file</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step disabled">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3 bg-secondary">2</div>
+                                <div>
+                                    <h6 class="mb-1 text-muted">Analyze Data</h6>
+                                    <p class="text-muted mb-0 small">Explore and prepare your dataset</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step disabled">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3 bg-secondary">3</div>
+                                <div>
+                                    <h6 class="mb-1 text-muted">Select Models</h6>
+                                    <p class="text-muted mb-0 small">Choose ML models to train</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step disabled">
+                            <div class="d-flex">
+                                <div class="process-step-circle me-3 bg-secondary">4</div>
+                                <div>
+                                    <h6 class="mb-1 text-muted">Train & Evaluate</h6>
+                                    <p class="text-muted mb-0 small">Train models and view results</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card shadow-sm">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Dataset Examples</h5>
+                </div>
+                <div class="card-body">
+                    <p>Not sure what format to use? Download one of our sample datasets:</p>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <a href="#" class="d-flex align-items-center text-decoration-none">
+                                <i class="fas fa-file-csv me-2 text-primary"></i>
+                                <span>Iris Classification Dataset</span>
+                                <i class="fas fa-download ms-auto text-muted"></i>
+                            </a>
+                        </li>
+                        <li class="mb-2">
+                            <a href="#" class="d-flex align-items-center text-decoration-none">
+                                <i class="fas fa-file-excel me-2 text-success"></i>
+                                <span>Housing Price Regression</span>
+                                <i class="fas fa-download ms-auto text-muted"></i>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="d-flex align-items-center text-decoration-none">
+                                <i class="fas fa-file-csv me-2 text-primary"></i>
+                                <span>Customer Churn Dataset</span>
+                                <i class="fas fa-download ms-auto text-muted"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // File input preview handling
+    document.getElementById('dataset').addEventListener('change', function() {
+        const fileInput = this;
+        const filePreview = document.getElementById('filePreview');
+        const fileName = document.getElementById('fileName');
+        const fileSize = document.getElementById('fileSize');
+        
+        if (fileInput.files && fileInput.files[0]) {
+            const file = fileInput.files[0];
+            
+            // Display file info
+            fileName.textContent = file.name;
+            fileSize.textContent = `Size: ${formatFileSize(file.size)}`;
+            filePreview.classList.remove('d-none');
+            
+            // Change icon based on file type
+            const fileIcon = filePreview.querySelector('i');
+            if (file.name.endsWith('.csv')) {
+                fileIcon.className = 'fas fa-file-csv fa-2x me-3 text-primary';
+            } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+                fileIcon.className = 'fas fa-file-excel fa-2x me-3 text-success';
+            }
+        }
+    });
+    
+    // Remove file button
+    document.getElementById('removeFile').addEventListener('click', function() {
+        const fileInput = document.getElementById('dataset');
+        fileInput.value = '';
+        document.getElementById('filePreview').classList.add('d-none');
+    });
+    
+    // Format file size to human-readable format
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    // Show loader when form is submitted
+    function showLoaderOnSubmit() {
+        const form = document.getElementById('uploadForm');
+        if (form.checkValidity()) {
+            showLoader('Uploading dataset. This may take a moment...');
+        }
+    }
+</script>
+{% endblock %}

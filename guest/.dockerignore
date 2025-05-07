@@ -1,0 +1,52 @@
+# Version control
+.git
+.gitignore
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Test files
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Large data files - these will be mounted as volumes
+uploads/*
+models/*
+reports/*
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment variables
+.env
+.venv
+venv/
+ENV/
+
+# Logs
+logs/
+*.log

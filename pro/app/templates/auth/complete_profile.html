@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+
+{% block title %}Complete Your Profile - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h4 class="card-title mb-0 text-center">Complete Your Profile</h4>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info mb-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Please complete your profile information to continue. This will help us personalize your experience.
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('auth.complete_profile') }}" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col-md-4 text-center mb-4 mb-md-0">
+                                <div class="profile-image-container mb-3">
+                                    <img src="{{ url_for('static', filename='images/default-avatar.png') }}" 
+                                         alt="Profile Image" class="img-fluid rounded-circle" 
+                                         style="width: 150px; height: 150px; object-fit: cover;" id="profilePreview">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="profile_image" class="form-label">Profile Picture</label>
+                                    <input class="form-control form-control-sm" type="file" id="profile_image" 
+                                           name="profile_image" accept="image/*">
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="first_name" class="form-label">First Name</label>
+                                        <input type="text" class="form-control" id="first_name" name="first_name" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="last_name" class="form-label">Last Name</label>
+                                        <input type="text" class="form-control" id="last_name" name="last_name" required>
+                                    </div>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="organization" class="form-label">Organization (Optional)</label>
+                                    <input type="text" class="form-control" id="organization" name="organization">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Email Address</label>
+                                    <input type="email" class="form-control" value="{{ current_user.email }}" disabled>
+                                    <div class="form-text">Your email address cannot be changed.</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary">Save Profile</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Preview uploaded profile image
+    document.getElementById('profile_image').addEventListener('change', function(e) {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('profilePreview').src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+{% endblock %}

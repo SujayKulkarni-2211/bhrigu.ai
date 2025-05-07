@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}Server Error{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="card shadow border-danger">
+        <div class="card-header bg-danger text-white">
+            <h3 class="m-0"><i class="fas fa-server me-2"></i>Server Error</h3>
+        </div>
+        <div class="card-body">
+            <h4 class="card-title">Internal Server Error</h4>
+            <p class="card-text">Something went wrong on our end. Our team has been notified of this issue.</p>
+            
+            {% if error %}
+            <div class="alert alert-danger mt-3">
+                {{ error }}
+            </div>
+            {% endif %}
+            
+            {% if traceback %}
+            <div class="mt-4">
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#errorDetails">
+                    Show Technical Details
+                </button>
+                <div class="collapse mt-3" id="errorDetails">
+                    <div class="card card-body bg-light">
+                        <pre class="mb-0"><code>{{ traceback }}</code></pre>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="mt-4">
+                <a href="javascript:history.back()" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-arrow-left me-1"></i>Go Back
+                </a>
+                <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">
+                    <i class="fas fa-home me-1"></i>Go to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,1008 @@
+{% extends "base.html" %}
+
+{% block title %}K-Fold Cross Validation Results - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">K-Fold Cross Validation Results</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">K-Fold Cross Validation Results</h2>
+            <p class="text-muted">{{ experiment.k_fold_value }}-fold cross validation results for {{ experiment.name }}</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-download me-2"></i>Export
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportDropdown">
+                    <li><a class="dropdown-item" href="{{ url_for('project.download_comparison_report', experiment_id=experiment.id) }}">
+                        <i class="fas fa-file-pdf me-2"></i>Download Report
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" id="exportChartBtn">
+                        <i class="fas fa-chart-bar me-2"></i>Export Chart as PNG
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Models Comparison Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Models Performance Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex">
+                            <i class="fas fa-info-circle fa-lg me-3 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1">About K-Fold Cross Validation</h6>
+                                <p class="mb-0">Each model was trained and evaluated on {{ experiment.k_fold_value }} different data splits. The results shown here are the average performance across all folds, providing more reliable estimates than a single train-test split.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if algorithms|length > 0 %}
+                    <div class="chart-container" style="position: relative; height:400px; width:100%">
+                        <canvas id="modelsComparisonChart"></canvas>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No completed models found</h5>
+                        <p class="text-muted">Wait for cross-validation to complete or try different models</p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-4">
+                        <h6 class="mb-3">Key Observations:</h6>
+                        <ul class="text-muted">
+                            {% if k_fold_runs|selectattr('status', 'equalto', 'completed')|list|length > 0 %}
+                            <li>
+                                {% set best_model = k_fold_runs|selectattr('status', 'equalto', 'completed')|sort(attribute='metrics.accuracy' if experiment.problem_type == 'classification' else 'metrics.r2', reverse=True)|first %}
+                                <strong>Best Model:</strong> {{ best_model.algorithm }} with 
+                                {% if experiment.problem_type == 'classification' %}
+                                {{ (best_model.metrics|tojson|from_json).accuracy * 100|round(2) }}% average accuracy
+                                {% else %}
+                                {{ (best_model.metrics|tojson|from_json).r2|round(3) }} average R² score
+                                {% endif %}
+                            </li>
+                            <li><strong>Stability:</strong> Cross-validation helps identify models that perform consistently across different data splits</li>
+                            <li><strong>Confidence:</strong> Performance metrics include confidence intervals based on the {{ experiment.k_fold_value }} different evaluations</li>
+                            {% else %}
+                            <li>Waiting for models to complete cross-validation...</li>
+                            {% endif %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Models Comparison Table -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Detailed Results</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Model</th>
+                                    <th>Status</th>
+                                    <th>
+                                        {% if experiment.problem_type == 'classification' %}
+                                        Accuracy (avg ± std)
+                                        {% else %}
+                                        R² Score (avg ± std)
+                                        {% endif %}
+                                    </th>
+                                    <th>
+                                        {% if experiment.problem_type == 'classification' %}
+                                        F1 Score
+                                        {% else %}
+                                        RMSE
+                                        {% endif %}
+                                    </th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for model in k_fold_runs|sort(attribute='status') %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="feature-icon-small bg-{{ 'primary' if model.model_type == 'classical' else 'warning' if model.model_type == 'quantum' else 'info' }}-light text-{{ 'primary' if model.model_type == 'classical' else 'warning' if model.model_type == 'quantum' else 'info' }} me-2">
+                                                <i class="fas fa-{{ 'cogs' if model.model_type == 'classical' else 'atom' if model.model_type == 'quantum' else 'brain' }}"></i>
+                                            </div>
+                                            <div>
+                                                <span class="fw-medium">{{ model.algorithm }}</span>
+                                                <span class="badge bg-light text-dark ms-1">{{ model.model_type|capitalize }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if model.status == 'completed' else 'primary' if model.status == 'training' else 'danger' }}">
+                                            {{ model.status|capitalize }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if model.status == 'completed' and model.tuning_metrics %}
+                                            {% set tuning_metrics = model.tuning_metrics|tojson|from_json %}
+                                            {% if tuning_metrics.fold_metrics %}
+                                                {% set metric_values = [] %}
+                                                {% for fold_metric in tuning_metrics.fold_metrics %}
+                                                    {% if experiment.problem_type == 'classification' %}
+                                                        {% do metric_values.append(fold_metric.accuracy) %}
+                                                    {% else %}
+                                                        {% do metric_values.append(fold_metric.r2) %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                                
+                                                {% set avg_metric = metric_values|sum / metric_values|length %}
+                                                {% set std_metric = metric_values|variance|sqrt %}
+                                                
+                                                {% if experiment.problem_type == 'classification' %}
+                                                    {{ (avg_metric * 100)|round(2) }}% ± {{ (std_metric * 100)|round(2) }}%
+                                                {% else %}
+                                                    {{ avg_metric|round(3) }} ± {{ std_metric|round(3) }}
+                                                {% endif %}
+                                            {% else %}
+                                                {% if experiment.problem_type == 'classification' %}
+                                                    {{ ((model.metrics|tojson|from_json).accuracy * 100)|round(2) }}%
+                                                {% else %}
+                                                    {{ (model.metrics|tojson|from_json).r2|round(3) }}
+                                                {% endif %}
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if model.status == 'completed' and model.metrics %}
+                                            {% if experiment.problem_type == 'classification' %}
+                                                {{ ((model.metrics|tojson|from_json).f1 * 100)|round(2) }}%
+                                            {% else %}
+                                                {{ (model.metrics|tojson|from_json).rmse|round(3) }}
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if model.status == 'completed' %}
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-primary view-fold-details" data-model-id="{{ model.id }}">
+                                                <i class="fas fa-eye me-1"></i>View Details
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <span class="visually-hidden">Toggle Dropdown</span>
+                                            </button>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="{{ url_for('project.train_model', experiment_id=experiment.id, model_run_id=model.id) }}">
+                                                    <i class="fas fa-play me-2"></i>Train Final Model
+                                                </a></li>
+                                                <li><a class="dropdown-item" href="{{ url_for('project.download_model', experiment_id=experiment.id, model_run_id=model.id) }}">
+                                                    <i class="fas fa-download me-2"></i>Download Model
+                                                </a></li>
+                                            </ul>
+                                        </div>
+                                        {% elif model.status == 'training' %}
+                                        <a href="{{ url_for('project.train_model', experiment_id=experiment.id, model_run_id=model.id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-sync-alt me-1"></i>View Progress
+                                        </a>
+                                        {% else %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-exclamation-circle me-1"></i>Failed
+                                        </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer   py-3 text-center">
+                    <a href="{{ url_for('project.model_recommendations', experiment_id=experiment.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-plus-circle me-2"></i>Try More Models
+                    </a>
+                </div>
+            </div>
+            
+            <!-- Continue with selected model -->
+            {% if k_fold_runs|selectattr('status', 'equalto', 'completed')|list|length > 0 %}
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Next Steps</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-success mb-4">
+                        <div class="d-flex">
+                            <i class="fas fa-lightbulb fa-lg me-3 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1">Recommendation</h6>
+                                <p class="mb-0">Based on cross-validation results, we recommend training a final model using the best-performing algorithm. This final model will be trained on the entire dataset.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% set best_model = k_fold_runs|selectattr('status', 'equalto', 'completed')|sort(attribute='metrics.accuracy' if experiment.problem_type == 'classification' else 'metrics.r2', reverse=True)|first %}
+                    <div class="text-center">
+                        <a href="{{ url_for('project.train_model', experiment_id=experiment.id, model_run_id=best_model.id) }}" class="btn btn-primary">
+                            <i class="fas fa-rocket me-2"></i>Train Final {{ best_model.algorithm }} Model
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-4">
+            <!-- How K-Fold Works Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">How K-Fold Works</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <img src="{{ url_for('static', filename='images/k_fold_diagram.png') }}" class="img-fluid rounded" alt="K-Fold Cross Validation Diagram">
+                    </div>
+                    
+                    <div class="steps">
+                        <div class="step completed">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3 bg-success text-white">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Data Splitting</h6>
+                                    <p class="text-muted mb-0 small">Dataset divided into {{ experiment.k_fold_value }} equal folds</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step completed">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3 bg-success text-white">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Multiple Training Runs</h6>
+                                    <p class="text-muted mb-0 small">{{ experiment.k_fold_value }} models trained per algorithm</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step active">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3">3</div>
+                                <div>
+                                    <h6 class="mb-1">Results Aggregation</h6>
+                                    <p class="text-muted mb-0 small">Average performance calculated</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="d-flex">
+                                <div class="process-step-circle me-3">4</div>
+                                <div>
+                                    <h6 class="mb-1">Final Model Selection</h6>
+                                    <p class="text-muted mb-0 small">Select best algorithm for final training</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- K-fold Metrics Explanation -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb text-warning me-2"></i>Understanding the Results</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="mb-2">Average Performance</h6>
+                        <p class="text-muted small mb-0">The average score across all {{ experiment.k_fold_value }} folds gives a reliable estimate of how well the model will perform on new data.</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="mb-2">Standard Deviation</h6>
+                        <p class="text-muted small mb-0">Lower standard deviation indicates more consistent performance across different data splits, which is desirable.</p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="mb-2">{% if experiment.problem_type == 'classification' %}Accuracy vs. F1 Score{% else %}R² Score vs. RMSE{% endif %}</h6>
+                        <p class="text-muted small mb-0">
+                            {% if experiment.problem_type == 'classification' %}
+                            While accuracy measures overall correctness, F1 score better handles imbalanced datasets by considering both precision and recall.
+                            {% else %}
+                            R² measures the proportion of variance explained by the model, while RMSE (Root Mean Squared Error) is in the same units as the target variable.
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div>
+                        <h6 class="mb-2">Final Model Selection</h6>
+                        <p class="text-muted small mb-0">Choose the model with the highest average performance and acceptable standard deviation, indicating good generalization ability.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Project Information Card -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Project Information</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Project:</div>
+                                <div class="col-7 fw-medium">{{ experiment.name }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Problem Type:</div>
+                                <div class="col-7">{{ experiment.problem_type|capitalize }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Target Column:</div>
+                                <div class="col-7">{{ experiment.target_column }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Dataset Size:</div>
+                                <div class="col-7">
+                                    {% if experiment.dataset_info %}
+                                    {{ experiment.dataset_info.num_rows }} rows
+                                    {% else %}
+                                    N/A
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">K-Fold Value:</div>
+                                <div class="col-7">{{ experiment.k_fold_value }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Models Tested:</div>
+                                <div class="col-7">{{ k_fold_runs|length }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Started:</div>
+                                <div class="col-7">
+                                    {% set first_run = k_fold_runs|sort(attribute='created_at')|first %}
+                                    {% if first_run and first_run.created_at %}
+                                    {{ first_run.created_at.strftime('%b %d, %Y') }}
+                                    {% else %}
+                                    N/A
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fold Details Modal -->
+<div class="modal fade" id="foldDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="foldDetailsTitle">Model Fold Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span id="foldDetailsInfo">Detailed performance metrics for each of the {{ experiment.k_fold_value }} folds.</span>
+                </div>
+                
+                <div class="nav nav-tabs mb-3" id="foldDetailsTabs" role="tablist">
+                    <button class="nav-link active" id="metrics-tab" data-bs-toggle="tab" data-bs-target="#metrics" type="button" role="tab" aria-controls="metrics" aria-selected="true">
+                        Performance Metrics
+                    </button>
+                    <button class="nav-link" id="feature-tab" data-bs-toggle="tab" data-bs-target="#feature" type="button" role="tab" aria-controls="feature" aria-selected="false">
+                        Feature Importance
+                    </button>
+                    <button class="nav-link" id="visualization-tab" data-bs-toggle="tab" data-bs-target="#visualization" type="button" role="tab" aria-controls="visualization" aria-selected="false">
+                        Visualization
+                    </button>
+                </div>
+                
+                <div class="tab-content" id="foldDetailsTabContent">
+                    <div class="tab-pane fade show active" id="metrics" role="tabpanel" aria-labelledby="metrics-tab">
+                        <div class="table-responsive">
+                            <table class="table table-bordered" id="foldMetricsTable">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Fold</th>
+                                        {% if experiment.problem_type == 'classification' %}
+                                        <th>Accuracy</th>
+                                        <th>Precision</th>
+                                        <th>Recall</th>
+                                        <th>F1 Score</th>
+                                        {% else %}
+                                        <th>R² Score</th>
+                                        <th>RMSE</th>
+                                        <th>MAE</th>
+                                        <th>Explained Variance</th>
+                                        {% endif %}
+                                    </tr>
+                                </thead>
+                                <tbody id="foldMetricsTableBody">
+                                    <!-- Will be filled dynamically -->
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <th>Average</th>
+                                        <!-- Will be filled dynamically -->
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="feature" role="tabpanel" aria-labelledby="feature-tab">
+                        <div class="mb-3">
+                            <label class="form-label">Select Fold</label>
+                            <select class="form-select" id="foldSelector">
+                                <!-- Will be filled dynamically -->
+                            </select>
+                        </div>
+                        
+                        <div style="height: 300px;">
+                            <canvas id="featureImportanceChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="visualization" role="tabpanel" aria-labelledby="visualization-tab">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Performance Across Folds</h6>
+                                        <div style="height: 250px;">
+                                            <canvas id="performanceAcrossFoldsChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            {% if experiment.problem_type == 'classification' %}
+                                            Confusion Matrix (Best Fold)
+                                            {% else %}
+                                            Residual Plot (Best Fold)
+                                            {% endif %}
+                                        </h6>
+                                        <div style="height: 250px;">
+                                            <canvas id="bestFoldVisualizationChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary" id="downloadFoldDetailsBtn">
+                    <i class="fas fa-download me-2"></i>Download Details
+                </button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Main comparison chart
+    {% if algorithms|length > 0 %}
+    const modelsComparisonCtx = document.getElementById('modelsComparisonChart').getContext('2d');
+    
+    // Prepare data
+    const algorithmsData = {{ algorithms|safe }};
+    const scoresData = {{ scores|safe }};
+    
+    // Generate colors for each algorithm type
+    const backgroundColors = algorithmsData.map(algorithm => {
+        if (algorithm.includes('Random') || algorithm.includes('Forest') || algorithm.includes('Boost') || algorithm.includes('Tree')) {
+            return 'rgba(54, 162, 235, 0.7)'; // Blue for tree-based
+        } else if (algorithm.includes('Regression') || algorithm.includes('Linear')) {
+            return 'rgba(255, 99, 132, 0.7)'; // Red for linear models
+        } else if (algorithm.includes('SVM') || algorithm.includes('SVC') || algorithm.includes('SVR')) {
+            return 'rgba(255, 206, 86, 0.7)'; // Yellow for SVM
+        } else if (algorithm.includes('MLP') || algorithm.includes('Neural') || algorithm.includes('LSTM')) {
+            return 'rgba(153, 102, 255, 0.7)'; // Purple for neural networks
+        } else if (algorithm.startsWith('Q')) {
+            return 'rgba(75, 192, 192, 0.7)'; // Green for quantum models
+        } else {
+            return 'rgba(201, 203, 207, 0.7)'; // Grey for others
+        }
+    });
+    
+    const borderColors = backgroundColors.map(color => color.replace('0.7', '1'));
+    
+    // Create chart
+    const modelsComparisonChart = new Chart(modelsComparisonCtx, {
+        type: 'bar',
+        data: {
+            labels: algorithmsData,
+            datasets: [{
+                label: '{{ "Accuracy (%)" if experiment.problem_type == "classification" else "R² Score" }}',
+                data: scoresData.map(score => {{ "score * 100" if experiment.problem_type == "classification" else "score" }}),
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return '{{ "Accuracy: " if experiment.problem_type == "classification" else "R² Score: " }}' + 
+                                  {{ "context.parsed.y.toFixed(2) + '%'" if experiment.problem_type == "classification" else "context.parsed.y.toFixed(4)" }};
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Model Performance Comparison ({{ experiment.k_fold_value }}-Fold Cross Validation)'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: {{ "true" if experiment.problem_type == "classification" else "false" }},
+                    title: {
+                        display: true,
+                        text: 'Algorithm'
+                    }
+                }
+            }
+        }
+    });
+    
+    // Export chart as PNG
+    document.getElementById('exportChartBtn').addEventListener('click', function() {
+        // Create a temporary link
+        const link = document.createElement('a');
+        link.download = '{{ experiment.name }}_k_fold_comparison.png';
+        link.href = modelsComparisonChart.toBase64Image();
+        link.click();
+    });
+    {% endif %}
+    
+    // Handle view fold details buttons
+    const viewFoldDetailsButtons = document.querySelectorAll('.view-fold-details');
+    viewFoldDetailsButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const modelId = this.getAttribute('data-model-id');
+            showFoldDetails(modelId);
+        });
+    });
+    
+    // Function to show fold details modal
+    function showFoldDetails(modelId) {
+        const modal = new bootstrap.Modal(document.getElementById('foldDetailsModal'));
+        
+        // Get model data via AJAX
+        fetch(`/project/{{ experiment.id }}/trial/${modelId}/k-fold-details`)
+            .then(response => response.json())
+            .then(data => {
+                // Fill modal with data
+                document.getElementById('foldDetailsTitle').textContent = `${data.algorithm} - ${experiment.k_fold_value}-Fold Results`;
+                document.getElementById('foldDetailsInfo').textContent = 
+                    `Detailed performance metrics for each of the ${experiment.k_fold_value} folds using ${data.algorithm}.`;
+                
+                // Fill metrics table
+                const tbody = document.getElementById('foldMetricsTableBody');
+                tbody.innerHTML = '';
+                
+                // Initialize arrays for averages
+                const metricKeys = {{ "['accuracy', 'precision', 'recall', 'f1']" if experiment.problem_type == "classification" else "['r2', 'rmse', 'mae', 'explained_variance']" }};
+                const averages = metricKeys.map(() => 0);
+                
+                // Add rows for each fold
+                data.fold_metrics.forEach((fold, index) => {
+                    const row = document.createElement('tr');
+                    
+                    // Add fold number
+                    const foldCell = document.createElement('td');
+                    foldCell.textContent = `Fold ${index + 1}`;
+                    if (data.best_fold === index) {
+                        foldCell.innerHTML += ' <span class="badge bg-success">Best</span>';
+                    }
+                    row.appendChild(foldCell);
+                    
+                    // Add metrics
+                    metricKeys.forEach((key, metricIndex) => {
+                        const cell = document.createElement('td');
+                        const value = fold[key];
+                        cell.textContent = {{ "Math.round(value * 10000) / 100 + '%'" if experiment.problem_type == "classification" else "Math.round(value * 1000) / 1000" }};
+                        row.appendChild(cell);
+                        
+                        // Add to average
+                        averages[metricIndex] += value;
+                    });
+                    
+                    tbody.appendChild(row);
+                });
+                
+                // Add averages to footer
+                const tfoot = document.querySelector('#foldMetricsTable tfoot tr');
+                // Clear existing cells except the first one
+                while (tfoot.children.length > 1) {
+                    tfoot.removeChild(tfoot.lastChild);
+                }
+                
+                // Add average cells
+                metricKeys.forEach((key, index) => {
+                    const avg = averages[index] / data.fold_metrics.length;
+                    const cell = document.createElement('th');
+                    cell.textContent = {{ "Math.round(avg * 10000) / 100 + '%'" if experiment.problem_type == "classification" else "Math.round(avg * 1000) / 1000" }};
+                    tfoot.appendChild(cell);
+                });
+                
+                // Fill fold selector
+                const foldSelector = document.getElementById('foldSelector');
+                foldSelector.innerHTML = '';
+                data.fold_metrics.forEach((fold, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `Fold ${index + 1}${data.best_fold === index ? ' (Best)' : ''}`;
+                    foldSelector.appendChild(option);
+                });
+                
+                // Set best fold as selected
+                foldSelector.value = data.best_fold;
+                
+                // Draw feature importance chart
+                drawFeatureImportanceChart(data.feature_importances[data.best_fold]);
+                
+                // Performance across folds chart
+                drawPerformanceAcrossFoldsChart(data.fold_metrics);
+                
+                // Best fold visualization
+                drawBestFoldVisualization(data);
+                
+                // Show modal
+                modal.show();
+            })
+            .catch(error => {
+                console.error('Error fetching fold details:', error);
+                alert('Error loading fold details. Please try again.');
+            });
+    }
+    
+    // Draw feature importance chart
+    function drawFeatureImportanceChart(featureImportance) {
+        // Clear existing chart
+        if (window.featureImportanceChart) {
+            window.featureImportanceChart.destroy();
+        }
+        
+        const ctx = document.getElementById('featureImportanceChart').getContext('2d');
+        
+        // Sort features by importance
+        const features = Object.keys(featureImportance);
+        const importances = features.map(f => featureImportance[f]);
+        
+        // Sort by importance
+        const sortedIndices = importances.map((_, i) => i).sort((a, b) => importances[b] - importances[a]);
+        const sortedFeatures = sortedIndices.map(i => features[i]).slice(0, 10); // Top 10 features
+        const sortedImportances = sortedIndices.map(i => importances[i]).slice(0, 10);
+        
+        window.featureImportanceChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: sortedFeatures,
+                datasets: [{
+                    label: 'Feature Importance',
+                    data: sortedImportances,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Top Feature Importance'
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Importance'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Update chart when fold changes
+        document.getElementById('foldSelector').addEventListener('change', function() {
+            const foldIndex = parseInt(this.value);
+            drawFeatureImportanceChart(featureImportance);
+        });
+    }
+    
+    // Draw performance across folds chart
+    function drawPerformanceAcrossFoldsChart(foldMetrics) {
+        // Clear existing chart
+        if (window.performanceAcrossFoldsChart) {
+            window.performanceAcrossFoldsChart.destroy();
+        }
+        
+        const ctx = document.getElementById('performanceAcrossFoldsChart').getContext('2d');
+        
+        // Prepare data
+        const labels = foldMetrics.map((_, i) => `Fold ${i + 1}`);
+        const mainMetric = {{ "'accuracy'" if experiment.problem_type == "classification" else "'r2'" }};
+        const secondaryMetric = {{ "'f1'" if experiment.problem_type == "classification" else "'rmse'" }};
+        
+        const mainData = foldMetrics.map(fold => fold[mainMetric]);
+        const secondaryData = foldMetrics.map(fold => fold[secondaryMetric]);
+        
+        window.performanceAcrossFoldsChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: {{ "'Accuracy'" if experiment.problem_type == "classification" else "'R² Score'" }},
+                        data: mainData.map(val => {{ "val * 100" if experiment.problem_type == "classification" else "val" }}),
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        fill: false,
+                        tension: 0.1,
+                        yAxisID: 'y'
+                    },
+                    {
+                        label: {{ "'F1 Score'" if experiment.problem_type == "classification" else "'RMSE'" }},
+                        data: secondaryData.map(val => {{ "val * 100" if experiment.problem_type == "classification" else "val" }}),
+                        borderColor: 'rgba(255, 99, 132, 1)',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        fill: false,
+                        tension: 0.1,
+                        yAxisID: {{ "'y'" if experiment.problem_type == "classification" else "'y1'" }}
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: {
+                        display: true,
+                        text: 'Performance Across Folds'
+                    }
+                },
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: {{ "'Accuracy (%)'" if experiment.problem_type == "classification" else "'R² Score'" }}
+                        }{% if experiment.problem_type == "classification" %},
+                        min: Math.floor(Math.min(...mainData) * 90),
+                        max: 100{% endif %}
+                    }{% if experiment.problem_type != "classification" %},
+                    y1: {
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'RMSE'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }{% endif %}
+                }
+            }
+        });
+    }
+    
+    // Draw best fold visualization
+    function drawBestFoldVisualization(data) {
+        // Clear existing chart
+        if (window.bestFoldVisualizationChart) {
+            window.bestFoldVisualizationChart.destroy();
+        }
+        
+        const ctx = document.getElementById('bestFoldVisualizationChart').getContext('2d');
+        
+        {% if experiment.problem_type == "classification" %}
+        // Confusion matrix for classification
+        if (data.confusion_matrix) {
+            const confusionMatrix = data.confusion_matrix;
+            const labels = Object.keys(confusionMatrix);
+            
+            // Create a 2D array for the confusion matrix
+            const matrix = [];
+            for (const actualClass of labels) {
+                const row = [];
+                for (const predictedClass of labels) {
+                    row.push(confusionMatrix[actualClass][predictedClass] || 0);
+                }
+                matrix.push(row);
+            }
+            
+            // Find the maximum value in the matrix for color scaling
+            const maxValue = Math.max(...matrix.flat());
+            
+            // Generate color values (from light to dark blue)
+            function getColor(value, max) {
+                const intensity = Math.max(0, 255 - Math.round((value / max) * 200));
+                return `rgba(54, 162, 235, ${value / max})`;
+            }
+            
+            window.bestFoldVisualizationChart = new Chart(ctx, {
+                type: 'matrix',
+                data: {
+                    datasets: [{
+                        data: matrix.flatMap((row, i) => 
+                            row.map((value, j) => ({
+                                x: j,
+                                y: i,
+                                v: value
+                            }))
+                        ),
+                        backgroundColor: (context) => {
+                            if (!context.raw) return;
+                            return getColor(context.raw.v, maxValue);
+                        },
+                        borderColor: '#ffffff',
+                        borderWidth: 1,
+                        width: ({ chart }) => (chart.chartArea || {}).width / labels.length - 1,
+                        height: ({ chart }) => (chart.chartArea || {}).height / labels.length - 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                title: () => '',
+                                label: (context) => {
+                                    const data = context.raw;
+                                    return [
+                                        `Actual: ${labels[data.y]}`,
+                                        `Predicted: ${labels[data.x]}`,
+                                        `Count: ${data.v}`
+                                    ];
+                                }
+                            }
+                        },
+                        legend: {
+                            display: false
+                        },
+                        title: {
+                            display: true,
+                            text: 'Confusion Matrix (Best Fold)'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'category',
+                            labels: labels,
+                            title: {
+                                display: true,
+                                text: 'Predicted Class'
+                            }
+                        },
+                        y: {
+                            type: 'category',
+                            labels: labels,
+                            title: {
+                                display: true,
+                                text: 'Actual Class'
+                            },
+                            offset: true,
+                            reverse: true
+                        }
+                    }
+                }
+            });
+        }
+        {% else %}
+        // Residual plot for regression
+        if (data.residuals && data.predictions) {
+            const residuals = data.residuals[data.best_fold] || [];
+            const predictions = data.predictions[data.best_fold] || [];
+            
+            // Create scatter data
+            const scatterData = [];
+            for (let i = 0; i < Math.min(residuals.length, predictions.length); i++) {
+                scatterData.push({
+                    x: predictions[i],
+                    y: residuals[i]
+                });
+            }
+            
+            window.bestFoldVisualizationChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Residuals',
+                        data: scatterData,
+                        backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                        pointRadius: 3,
+                        pointHoverRadius: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Residual Plot (Best Fold)'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Predicted Values'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Residuals'
+                            },
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+        }
+        {% endif %}
+    }
+    
+    // Download fold details
+    document.getElementById('downloadFoldDetailsBtn').addEventListener('click', function() {
+        // In a real app, this would trigger a download of a CSV or PDF file
+        alert('This would download a detailed report of the K-fold results for this model.');
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,739 @@
+{% extends "base.html" %}
+
+{% block title %}{{ experiment.name }} - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ experiment.name }}</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">{{ experiment.name }}</h2>
+            <p class="text-muted">
+                {% if experiment.problem_type %}
+                {{ experiment.problem_type|capitalize }} project
+                {% else %}
+                ML Project
+                {% endif %}
+                • Created on {{ experiment.created_at.strftime('%b %d, %Y') }}
+            </p>
+        </div>
+        <div class="col-md-4 text-md-end d-flex justify-content-md-end align-items-center mt-3 mt-md-0">
+            <span class="badge rounded-pill bg-{{ getStatusColor(experiment.status) }} me-2 px-3 py-2">
+                {{ experiment.status.replace('_', ' ').title() }}
+            </span>
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" id="projectActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="projectActionsDropdown">
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#renameProjectModal">
+                        <i class="fas fa-edit me-2"></i>Rename Project
+                    </a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('project.trials_summary', experiment_id=experiment.id) }}">
+                        <i class="fas fa-chart-bar me-2"></i>View All Results
+                    </a></li>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#exportProjectModal">
+                        <i class="fas fa-file-export me-2"></i>Export Project
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteProjectModal">
+                        <i class="fas fa-trash-alt me-2"></i>Delete Project
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Card based on current step -->
+    {% if experiment.status == 'created' %}
+    <!-- Step 1: Upload Dataset -->
+    <div class="card shadow-sm mb-4 border-primary">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="card-title mb-2">Let's get started with your dataset</h5>
+                    <p class="card-text mb-0">Upload a CSV or Excel file to begin training your machine learning models.</p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <a href="{{ url_for('project.upload_dataset', experiment_id=experiment.id) }}" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i>Upload Dataset
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif experiment.status == 'data_uploaded' %}
+    <!-- Step 2: Analyze Dataset -->
+    <div class="card shadow-sm mb-4 border-primary">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="card-title mb-2">Dataset uploaded successfully</h5>
+                    <p class="card-text mb-0">Now let's analyze your data and select features for your model.</p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <a href="{{ url_for('project.analyze_dataset', experiment_id=experiment.id) }}" class="btn btn-primary">
+                        <i class="fas fa-chart-line me-2"></i>Analyze Dataset
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif experiment.status == 'analyzed' %}
+    <!-- Step 3: Model Selection -->
+    <div class="card shadow-sm mb-4 border-primary">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="card-title mb-2">Dataset analysis complete</h5>
+                    <p class="card-text mb-0">Now it's time to select machine learning models to train on your data.</p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <a href="{{ url_for('project.model_recommendations', experiment_id=experiment.id) }}" class="btn btn-primary">
+                        <i class="fas fa-robot me-2"></i>Choose Models
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif experiment.status == 'training' %}
+    <!-- Step 4: Training in Progress -->
+    <div class="card shadow-sm mb-4 border-info">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="card-title mb-2">Training in progress</h5>
+                    <p class="card-text mb-0">Your models are being trained. This may take several minutes.</p>
+                    <div class="progress mt-2" style="height: 10px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 75%"></div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <a href="#" class="btn btn-outline-info" onclick="refreshPage()">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh Status
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif experiment.status == 'completed' %}
+    <!-- Project Completed Summary -->
+    <div class="card shadow-sm mb-4 border-success">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="card-title mb-2">Project completed successfully</h5>
+                    <p class="card-text mb-0">Your models have been trained and evaluated. View the results below.</p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <a href="{{ url_for('project.trials_summary', experiment_id=experiment.id) }}" class="btn btn-success">
+                        <i class="fas fa-chart-bar me-2"></i>View Full Results
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif experiment.status == 'failed' %}
+    <!-- Error State -->
+    <div class="card shadow-sm mb-4 border-danger">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h5 class="card-title mb-2">There was a problem</h5>
+                    <p class="card-text mb-0">We encountered an error while processing your project. Please try again or contact support.</p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#errorDetailsModal">
+                        <i class="fas fa-exclamation-circle me-2"></i>View Error Details
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="row">
+        <div class="col-md-4 mb-4 mb-md-0">
+            <!-- Project Information -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Project Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3 pb-3 border-bottom">
+                        <h6 class="text-muted mb-2">Dataset</h6>
+                        {% if experiment.dataset_original_name %}
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-file-csv fa-lg text-primary me-3"></i>
+                            <div>
+                                <p class="mb-0 fw-medium">{{ experiment.dataset_original_name }}</p>
+                                <small class="text-muted">Uploaded on {{ experiment.updated_at.strftime('%b %d, %Y') }}</small>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="mb-0 text-muted fst-italic">No dataset uploaded yet</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3 pb-3 border-bottom">
+                        <h6 class="text-muted mb-2">Configuration</h6>
+                        <p class="mb-1"><strong>Problem Type:</strong> 
+                            {% if experiment.problem_type %}
+                            {{ experiment.problem_type|capitalize }}
+                            {% else %}
+                            <span class="text-muted fst-italic">Not set</span>
+                            {% endif %}
+                        </p>
+                        <p class="mb-1"><strong>Target Variable:</strong> 
+                            {% if experiment.target_column %}
+                            {{ experiment.target_column }}
+                            {% else %}
+                            <span class="text-muted fst-italic">Not set</span>
+                            {% endif %}
+                        </p>
+                        <p class="mb-0"><strong>Selected Features:</strong> 
+                            {% if experiment.feature_columns %}
+                            {{ feature_columns_list|length }} features
+                            {% else %}
+                            <span class="text-muted fst-italic">Not set</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <div class="mb-3 pb-3 border-bottom">
+                        <h6 class="text-muted mb-2">Timeline</h6>
+                        <p class="mb-1"><strong>Created:</strong> {{ experiment.created_at.strftime('%b %d, %Y') }}</p>
+                        <p class="mb-1"><strong>Last Updated:</strong> {{ experiment.updated_at.strftime('%b %d, %Y') }}</p>
+                        <p class="mb-0"><strong>Completion:</strong> 
+                            {% if experiment.completed_at %}
+                            {{ experiment.completed_at.strftime('%b %d, %Y') }}
+                            {% else %}
+                            <span class="text-muted fst-italic">Not completed</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <h6 class="text-muted mb-2">Advanced Options</h6>
+                        <div class="form-check form-switch mb-2">
+                            <input class="form-check-input" type="checkbox" id="kFoldToggle" 
+                                  {% if experiment.use_k_fold %}checked{% endif %}
+                                  {% if not has_k_fold %}disabled{% endif %}>
+                            <label class="form-check-label" for="kFoldToggle">
+                                K-Fold Cross Validation
+                            </label>
+                            {% if not has_k_fold %}
+                            <div class="form-text">
+                                <a href="{{ url_for('payment.pay_for_k_fold', experiment_id=experiment.id) }}">Upgrade</a> to enable
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="apiToggle"
+                                  {% if experiment.deploy_as_api %}checked{% endif %}
+                                  {% if not has_api_hosting %}disabled{% endif %}>
+                            <label class="form-check-label" for="apiToggle">
+                                Deploy as API
+                            </label>
+                            {% if not has_api_hosting %}
+                            <div class="form-text">
+                                {% if model_run %}
+                                <a href="{{ url_for('payment.pay_for_api_hosting', experiment_id=experiment.id, model_run_id=model_run.id) }}">Upgrade</a> to enable
+                                {% else %}
+                                <a href="{{ url_for('project.view', experiment_id=experiment.id) }}">Select a model first</a> to enable API hosting
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Process Steps -->
+            <div class="card shadow-sm">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Project Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div class="steps">
+                        <!-- Step 1: Upload Dataset -->
+                        <div class="step {% if experiment.status != 'created' %}completed{% elif experiment.status == 'created' %}active{% else %}disabled{% endif %}">
+                            <div class="d-flex mb-3">
+                                {% if experiment.status != 'created' %}
+                                <div class="process-step-circle me-3 bg-success text-white">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                {% else %}
+                                <div class="process-step-circle me-3 {% if experiment.status == 'created' %}{% else %}bg-secondary{% endif %}">1</div>
+                                {% endif %}
+                                <div>
+                                    <h6 class="mb-1 {% if experiment.status == 'created' %}{% elif experiment.status == 'created' %}{% else %}text-muted{% endif %}">Upload Dataset</h6>
+                                    {% if experiment.status != 'created' %}
+                                    <p class="text-muted mb-0 small">Completed</p>
+                                    {% elif experiment.status == 'created' %}
+                                    <p class="text-muted mb-0 small">Upload your data</p>
+                                    {% else %}
+                                    <p class="text-muted mb-0 small">Not started</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 2: Analyze Dataset -->
+                        <div class="step {% if experiment.status not in ['created', 'data_uploaded'] %}completed{% elif experiment.status == 'data_uploaded' %}active{% else %}disabled{% endif %}">
+                            <div class="d-flex mb-3">
+                                {% if experiment.status not in ['created', 'data_uploaded'] %}
+                                <div class="process-step-circle me-3 bg-success text-white">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                {% else %}
+                                <div class="process-step-circle me-3 {% if experiment.status == 'data_uploaded' %}{% else %}bg-secondary{% endif %}">2</div>
+                                {% endif %}
+                                <div>
+                                    <h6 class="mb-1 {% if experiment.status not in ['created', 'data_uploaded'] %}{% elif experiment.status == 'data_uploaded' %}{% else %}text-muted{% endif %}">Analyze Data</h6>
+                                    {% if experiment.status not in ['created', 'data_uploaded'] %}
+                                    <p class="text-muted mb-0 small">Completed</p>
+                                    {% elif experiment.status == 'data_uploaded' %}
+                                    <p class="text-muted mb-0 small">Explore features</p>
+                                    {% else %}
+                                    <p class="text-muted mb-0 small">Not started</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 3: Select Models -->
+                        <div class="step {% if experiment.status not in ['created', 'data_uploaded', 'analyzed'] %}completed{% elif experiment.status == 'analyzed' %}active{% else %}disabled{% endif %}">
+                            <div class="d-flex mb-3">
+                                {% if experiment.status not in ['created', 'data_uploaded', 'analyzed'] %}
+                                <div class="process-step-circle me-3 bg-success text-white">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                {% else %}
+                                <div class="process-step-circle me-3 {% if experiment.status == 'analyzed' %}{% else %}bg-secondary{% endif %}">3</div>
+                                {% endif %}
+                                <div>
+                                    <h6 class="mb-1 {% if experiment.status not in ['created', 'data_uploaded', 'analyzed'] %}{% elif experiment.status == 'analyzed' %}{% else %}text-muted{% endif %}">Select Models</h6>
+                                    {% if experiment.status not in ['created', 'data_uploaded', 'analyzed'] %}
+                                    <p class="text-muted mb-0 small">Completed</p>
+                                    {% elif experiment.status == 'analyzed' %}
+                                    <p class="text-muted mb-0 small">Choose ML models</p>
+                                    {% else %}
+                                    <p class="text-muted mb-0 small">Not started</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Step 4: Train & Evaluate -->
+                        <div class="step {% if experiment.status == 'completed' %}completed{% elif experiment.status in ['training', 'model_selected'] %}active{% else %}disabled{% endif %}">
+                            <div class="d-flex">
+                                {% if experiment.status == 'completed' %}
+                                <div class="process-step-circle me-3 bg-success text-white">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                {% else %}
+                                <div class="process-step-circle me-3 {% if experiment.status in ['training', 'model_selected'] %}{% else %}bg-secondary{% endif %}">4</div>
+                                {% endif %}
+                                <div>
+                                    <h6 class="mb-1 {% if experiment.status == 'completed' %}{% elif experiment.status in ['training', 'model_selected'] %}{% else %}text-muted{% endif %}">Train & Evaluate</h6>
+                                    {% if experiment.status == 'completed' %}
+                                    <p class="text-muted mb-0 small">Completed</p>
+                                    {% elif experiment.status in ['training', 'model_selected'] %}
+                                    <p class="text-muted mb-0 small">Training models</p>
+                                    {% else %}
+                                    <p class="text-muted mb-0 small">Not started</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <!-- Model Results -->
+            {% if model_runs %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Model Results</h5>
+                        <a href="{{ url_for('project.trials_summary', experiment_id=experiment.id) }}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-chart-bar me-1"></i>Compare All
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th>Status</th>
+                                    <th>
+                                        {% if experiment.problem_type == 'classification' %}
+                                        Accuracy
+                                        {% else %}
+                                        R² Score
+                                        {% endif %}
+                                    </th>
+                                    <th>Started</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for model in model_runs %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="feature-icon-small bg-light text-{{ 'primary' if model.model_type == 'classical' else 'warning' if model.model_type == 'neural' else 'info' }} me-2">
+                                                <i class="fas fa-{{ 'robot' if model.model_type == 'classical' else 'brain' if model.model_type == 'neural' else 'atom' }}"></i>
+                                            </div>
+                                            <div>
+                                                <span class="fw-medium">{{ model.algorithm }}</span>
+                                                <span class="badge bg-light text-dark ms-1">{{ model.model_type|capitalize }}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ getStatusColor(model.status) }}">
+                                            {{ model.status.replace('_', ' ').title() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if model.metrics and model.status == 'completed' %}
+                                            {% set metrics = json.loads(model.metrics) %}
+                                            {% if experiment.problem_type == 'classification' %}
+                                                {% if 'accuracy' in metrics %}
+                                                    {{ (metrics.accuracy * 100)|round(2) }}%
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            {% else %}
+                                                {% if 'r2' in metrics %}
+                                                    {{ metrics.r2|round(3) }}
+                                                {% else %}
+                                                    N/A
+                                                {% endif %}
+                                            {% endif %}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ model.started_at.strftime('%b %d, %H:%M') if model.started_at else '-' }}</td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            {% if model.status == 'completed' %}
+                                            <a href="{{ url_for('project.model_results', experiment_id=experiment.id, model_run_id=model.id) }}" class="btn btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            {% elif model.status == 'training' or model.status == 'tuning' %}
+                                            <a href="{{ url_for('project.train_model', experiment_id=experiment.id, model_run_id=model.id) }}" class="btn btn-outline-info">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </a>
+                                            {% elif model.status == 'failed' %}
+                                            <button type="button" class="btn btn-outline-danger" onclick="viewErrorLogs('{{ model.id }}')">
+                                                <i class="fas fa-exclamation-circle"></i>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer text-center py-3">
+                    <a href="{{ url_for('project.model_recommendations', experiment_id=experiment.id) }}" class="btn btn-outline-primary">
+                        <i class="fas fa-plus-circle me-2"></i>Add More Models
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+            
+            {% if dataset_info %}
+            <!-- Dataset Insights -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header py-3">
+                    <h5 class="mb-0">Dataset Insights</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body py-3">
+                                    <h6 class="card-title mb-3">Dataset Size</h6>
+                                    <div class="d-flex align-items-center">
+                                        <div class="feature-icon-small bg-primary-light text-primary me-3">
+                                            <i class="fas fa-database"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="mb-0">{{ dataset_info.num_rows }}</h4>
+                                            <p class="text-muted mb-0 small">Rows × {{ dataset_info.num_columns }} Columns</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body py-3">
+                                    <h6 class="card-title mb-3">Target Variable</h6>
+                                    <div class="d-flex align-items-center">
+                                        <div class="feature-icon-small bg-success-light text-success me-3">
+                                            <i class="fas fa-bullseye"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="mb-0">{{ experiment.target_column }}</h4>
+                                            <p class="text-muted mb-0 small">
+                                                {% if experiment.problem_type == 'classification' %}
+                                                Classification target
+                                                {% else %}
+                                                Regression target
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if dataset_info.correlation_matrix %}
+                    <h6 class="mb-3">Feature Correlations</h6>
+                    <div class="text-center mb-3">
+                        <img src="data:image/png;base64,{{ dataset_info.correlation_matrix }}" 
+                             class="img-fluid" alt="Correlation Matrix" style="max-height: 350px;">
+                    </div>
+                    {% endif %}
+                    
+                    <div class="text-center">
+                        <a href="{{ url_for('project.analyze_dataset', experiment_id=experiment.id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-chart-line me-2"></i>View Full Analysis
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Tips Card -->
+            <div class="card shadow-sm">
+                <div class="card-header py-3">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb text-warning me-2"></i>Tips to Improve Your Models</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <h6 class="mb-2">Feature Engineering</h6>
+                            <p class="text-muted small mb-0">Consider creating new features from existing ones. For numerical data, try scaling, normalization, or polynomial features.</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="mb-2">Handle Missing Values</h6>
+                            <p class="text-muted small mb-0">Instead of removing rows with missing data, consider imputation techniques like mean/median for numerical and mode for categorical values.</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="mb-2">Use K-Fold Cross Validation</h6>
+                            <p class="text-muted small mb-0">K-fold cross validation provides more reliable model performance estimates by testing on multiple data subsets.</p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <h6 class="mb-2">Try Ensemble Methods</h6>
+                            <p class="text-muted small mb-0">Combine predictions from multiple models for better performance. Random Forest and Gradient Boosting are already ensemble methods.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-center py-3">
+                    <a href="{{ url_for('payment.upgrade_to_pro') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-crown me-2"></i>Upgrade to Pro for Advanced Features
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Rename Project Modal -->
+<div class="modal fade" id="renameProjectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Rename Project</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="renameProjectForm" method="POST" action="#">
+                    <div class="mb-3">
+                        <label for="project_name" class="form-label">New Project Name</label>
+                        <input type="text" class="form-control" id="project_name" name="project_name" 
+                               value="{{ experiment.name }}" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" form="renameProjectForm" class="btn btn-primary">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Project Modal -->
+<div class="modal fade" id="deleteProjectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Delete Project</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the project <strong>{{ experiment.name }}</strong>?</p>
+                <p class="text-danger">This action cannot be undone. All models, datasets, and results associated with this project will be permanently deleted.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="POST" action="{{ url_for('dashboard.delete_project', experiment_id=experiment.id) }}">
+                    <button type="submit" class="btn btn-danger">Delete Project</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Project Modal -->
+<div class="modal fade" id="exportProjectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Export Project</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6 class="mb-3">Choose what to export:</h6>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="exportDataset" checked>
+                    <label class="form-check-label" for="exportDataset">
+                        Dataset (original data file)
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="exportModels" checked>
+                    <label class="form-check-label" for="exportModels">
+                        Trained Models (.pkl files)
+                    </label>
+                </div>
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" id="exportReports" checked>
+                    <label class="form-check-label" for="exportReports">
+                        Performance Reports (.pdf)
+                    </label>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="exportCode">
+                    <label class="form-check-label" for="exportCode">
+                        Sample Code (Python scripts)
+                    </label>
+                </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Files will be exported as a single ZIP archive.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="exportProject()">
+                    <i class="fas fa-download me-2"></i>Export Project
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Details Modal -->
+<div class="modal fade" id="errorDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Error Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h6 class="mb-2">Error Message:</h6>
+                <div class="alert alert-danger">
+                    {{ experiment.logs }}
+                </div>
+                <h6 class="mb-2">Troubleshooting Steps:</h6>
+                <ol>
+                    <li>Check if your dataset contains missing values that may need preprocessing</li>
+                    <li>Ensure that your target column has appropriate values for the selected problem type</li>
+                    <li>Try selecting different features or model types</li>
+                    <li>You can restart the process by uploading a new dataset</li>
+                </ol>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <a href="#" class="btn btn-primary">
+                    <i class="fas fa-life-ring me-2"></i>Contact Support
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function refreshPage() {
+        location.reload();
+    }
+    
+    function viewErrorLogs(modelId) {
+        // In a real application, this would fetch logs from the server
+        alert('View error logs for model ' + modelId);
+    }
+    
+    function exportProject() {
+        // In a real application, this would trigger a download
+        showLoader('Preparing project export. This may take a moment...');
+        
+        // Simulate a delay for demonstration
+        setTimeout(function() {
+            hideLoader();
+            // Show success message
+            alert('Project exported successfully!');
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('exportProjectModal'));
+            modal.hide();
+        }, 2000);
+    }
+    
+    // Toggle K-Fold setting
+    document.getElementById('kFoldToggle').addEventListener('change', function() {
+        if (!this.disabled) {
+            updateProjectSetting('use_k_fold', this.checked);
+        }
+    });
+    
+    // Toggle API deployment setting
+    document.getElementById('apiToggle').addEventListener('change', function() {
+        if (!this.disabled) {
+            updateProjectSetting('deploy_as_api', this.checked);
+        }
+    });
+    
+    function updateProjectSetting(setting, value) {
+        // In a real application, this would update the setting via AJAX
+        showLoader('Updating project settings...');
+        
+        // Simulate a delay for demonstration
+        setTimeout(function() {
+            hideLoader();
+        }, 1000);
+    }
+</script>
+{% endblock %}

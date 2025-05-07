@@ -1,0 +1,21 @@
+Hello {{ user_name }},
+
+Welcome to Bhrigu AI! Your account has been successfully created.
+
+Start exploring the platform here:
+https://bhrigu.ai/dashboard
+
+With Bhrigu AI, you can:
+- Build ML models without coding
+- Analyze datasets easily
+- Train and evaluate multiple models
+- Deploy via APIs
+- Collaborate with your team
+
+Check out our Getting Started Guide:
+https://bhrigu.ai/getting-started
+
+Need help? Contact us at support@bhrigu.ai
+
+Best regards,
+The Bhrigu AI Team

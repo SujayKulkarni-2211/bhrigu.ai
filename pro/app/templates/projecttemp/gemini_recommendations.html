@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+
+{% block title %}Gemini AI Analysis - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.model_recommendations', experiment_id=experiment.id) }}">Model Recommendations</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Gemini Analysis</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Gemini AI Analysis</h2>
+            <p class="text-muted">In-depth analysis and model recommendations for your dataset</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <button type="button" class="btn btn-outline-primary mb-3 mb-md-0" id="regenerateAnalysis">
+                <i class="fas fa-sync-alt me-2"></i>Regenerate Analysis
+            </button>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Gemini Analysis Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-brain me-2 text-primary"></i>Gemini AI Analysis</h5>
+                        <span class="badge bg-success px-3 py-2">
+                            <i class="fas fa-robot me-1"></i>AI-Generated
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <!-- Dataset Overview Section -->
+                    <div class="mb-4">
+                        <h5 class="mb-3">Dataset Characteristics</h5>
+                        <div class="alert alert-light">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <ul class="list-unstyled mb-0">
+                                        <li class="mb-2"><i class="fas fa-table text-primary me-2"></i> <strong>Rows:</strong> {{ data_info.num_rows }}</li>
+                                        <li class="mb-2"><i class="fas fa-columns text-primary me-2"></i> <strong>Columns:</strong> {{ data_info.num_cols }}</li>
+                                        <li class="mb-2"><i class="fas fa-chart-bar text-primary me-2"></i> <strong>Numeric Features:</strong> {{ data_info.numeric_columns|length }}</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <ul class="list-unstyled mb-0">
+                                        <li class="mb-2"><i class="fas fa-list text-primary me-2"></i> <strong>Categorical Features:</strong> {{ data_info.categorical_columns|length }}</li>
+                                        <li class="mb-2"><i class="fas fa-bullseye text-primary me-2"></i> <strong>Target:</strong> {{ experiment.target_column }}</li>
+                                        <li class="mb-2"><i class="fas fa-clipboard-check text-primary me-2"></i> <strong>Problem Type:</strong> {{ experiment.problem_type|capitalize }}</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dataset Insights Section -->
+                    <div class="mb-4">
+                        <h5 class="mb-3">Dataset Insights</h5>
+                        <div class="p-3 border rounded">
+                            {% if recommendations.insights %}
+                            <p>{{ recommendations.insights }}</p>
+                            {% else %}
+                            <p class="text-muted text-center"><i class="fas fa-spinner fa-spin me-2"></i>Generating insights...</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Model Recommendations Section -->
+                    <div class="mb-4">
+                        <h5 class="mb-3">Recommended Models</h5>
+                        
+                        <div class="alert alert-primary mb-3">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            <strong>AI Recommendation:</strong> Based on your dataset characteristics, we recommend the following models, ranked by expected performance.
+                        </div>
+                        
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Model</th>
+                                        <th>Expected Performance</th>
+                                        <th>Reasoning</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% if recommendations.models %}
+                                    {% for model in recommendations.models %}
+                                    <tr>
+                                        <td class="text-center">{{ loop.index }}</td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="feature-icon-small bg-{{ model.color_class|default('primary') }}-light text-{{ model.color_class|default('primary') }} me-2">
+                                                    <i class="fas fa-{{ model.icon|default('robot') }}"></i>
+                                                </div>
+                                                <span>{{ model.name }}</span>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar bg-{{ model.color_class|default('primary') }}" style="width: {{ model.score }}%"></div>
+                                            </div>
+                                            <span class="small">{{ model.score }}%</span>
+                                        </td>
+                                        <td class="small text-muted">{{ model.reasoning }}</td>
+                                        <td>
+                                            <a href="{{ url_for('project.select_model', experiment_id=experiment.id, algorithm=model.algorithm) }}" class="btn btn-sm btn-primary">
+                                                <i class="fas fa-plus-circle me-1"></i>Select
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted py-3">
+                                            <i class="fas fa-spinner fa-spin me-2"></i>Analyzing model recommendations...
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Preprocessing Recommendations -->
+                    <div class="mb-4">
+                        <h5 class="mb-3">Preprocessing Recommendations</h5>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div class="d-flex">
+                                    <div class="feature-icon-small bg-success-light text-success me-3 mt-1">
+                                        <i class="fas fa-magic"></i>
+                                    </div>
+                                    <div>
+                                        {% if recommendations.preprocessing %}
+                                        <p>{{ recommendations.preprocessing }}</p>
+                                        {% else %}
+                                        <p class="text-muted">Preprocessing recommendations are being generated...</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Performance Expectations -->
+                    <div>
+                        <h5 class="mb-3">Performance Expectations</h5>
+                        <div class="p-3 border rounded">
+                            {% if recommendations.expectations %}
+                            <p>{{ recommendations.expectations }}</p>
+                            {% else %}
+                            <p class="text-muted text-center"><i class="fas fa-spinner fa-spin me-2"></i>Analyzing expected performance...</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quick Actions Card -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <div class="d-grid">
+                                {% if recommendations.top_algorithm %}
+                                <a href="{{ url_for('project.select_model', experiment_id=experiment.id, algorithm=recommendations.top_algorithm) }}" class="btn btn-primary">
+                                    <i class="fas fa-star me-2"></i>Try Top Recommended Model
+                                </a>
+                                {% else %}
+                                <button class="btn btn-primary" disabled>
+                                    <i class="fas fa-star me-2"></i>Try Top Recommended Model
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-grid">
+                                <a href="{{ url_for('project.model_recommendations', experiment_id=experiment.id) }}" class="btn btn-outline-primary">
+                                    <i class="fas fa-th-list me-2"></i>Back to All Recommendations
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Feature Importance Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Top Predictive Features</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">These features are expected to have the strongest influence on model predictions:</p>
+                    
+                    {% if recommendations.feature_importances %}
+                    <div>
+                        {% for feature in recommendations.feature_importances %}
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span>{{ feature.name }}</span>
+                                <span class="text-primary">{{ feature.importance }}%</span>
+                            </div>
+                            <div class="progress" style="height: 5px;">
+                                <div class="progress-bar" style="width: {{ feature.importance }}%"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-spinner fa-spin mb-3 d-block"></i>
+                        Analyzing feature importance...
+                    </div>
+                    {% endif %}
+                    
+                    <div class="text-muted small">
+                        <p class="mb-0"><i class="fas fa-info-circle me-1"></i> Importance scores are estimated from correlation analysis and feature distributions.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Potential Issues Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Potential Issues</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning mb-3">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Issues to Watch</strong>
+                    </div>
+                    
+                    <ul class="list-group list-group-flush">
+                        {% if recommendations.issues %}
+                        {% for issue in recommendations.issues %}
+                        <li class="list-group-item px-0">
+                            <div class="d-flex">
+                                <div class="me-3">
+                                    <span class="badge rounded-pill bg-{{ issue.severity_class }} px-3 py-2">{{ issue.severity }}</span>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">{{ issue.title }}</h6>
+                                    <p class="small text-muted mb-0">{{ issue.description }}</p>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                        {% else %}
+                        <li class="list-group-item text-center text-muted py-3">
+                            <i class="fas fa-spinner fa-spin mb-2 d-block"></i>
+                            Analyzing potential issues...
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Available Models Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Available Models</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for model in available_models %}
+                        <div class="col-lg-4 col-md-6 mb-4">
+                            <div class="card h-100 shadow-sm border-0">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        {{ model.algorithm }}
+                                        <span class="badge bg-{{ 'primary' if model.model_type == 'classical' else 'info' if model.model_type == 'neural' else 'warning' }} ms-2">{{ model.model_type|capitalize }}</span>
+                                    </h5>
+                                    <p class="card-text">{{ model.description }}</p>
+                                    <p><strong>Suitable for:</strong> {{ model.suitable_for }}</p>
+                                    <a href="{{ url_for('project.select_model', experiment_id=experiment.id, algorithm=model.algorithm) }}" class="btn btn-primary">Select Model</a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Solution Strategy -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Solution Strategy</h5>
+                </div>
+                <div class="card-body">
+                    <div class="steps">
+                        <div class="step mb-3">
+                            <div class="d-flex">
+                                <div class="process-step-circle me-3">1</div>
+                                <div>
+                                    <h6 class="mb-1">Start with Top Recommended Model</h6>
+                                    <p class="text-muted mb-0 small">Begin with the top recommended model as a strong baseline</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step mb-3">
+                            <div class="d-flex">
+                                <div class="process-step-circle me-3">2</div>
+                                <div>
+                                    <h6 class="mb-1">Compare Multiple Models</h6>
+                                    <p class="text-muted mb-0 small">Try 2-3 different model types to find the best performer</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step mb-3">
+                            <div class="d-flex">
+                                <div class="process-step-circle me-3">3</div>
+                                <div>
+                                    <h6 class="mb-1">Optimize Hyperparameters</h6>
+                                    <p class="text-muted mb-0 small">Fine-tune the best-performing model with hyperparameter optimization</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step">
+                            <div class="d-flex">
+                                <div class="process-step-circle me-3">4</div>
+                                <div>
+                                    <h6 class="mb-1">Evaluate & Deploy</h6>
+                                    <p class="text-muted mb-0 small">Assess final model performance and deploy for inference</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Regenerate analysis button
+    document.getElementById('regenerateAnalysis').addEventListener('click', function() {
+        showLoader('Regenerating AI analysis...');
+        
+        // In a real implementation, this would call an API to regenerate the analysis
+        // For this demo, we'll just reload the page after a short delay
+        setTimeout(function() {
+            location.reload();
+        }, 2000);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,584 @@
+{% extends "base.html" %}
+
+{% block title %}Hyperparameter Tuning - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Hyperparameter Tuning</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">{{ model_run.algorithm }} Hyperparameter Tuning</h2>
+            <p class="text-muted">Automatically discovering optimal hyperparameters for your model</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="d-flex align-items-center justify-content-md-end">
+                <span class="badge rounded-pill bg-{{ getStatusColor(model_run.status) }} me-2 px-3 py-2">
+                    {{ model_run.status.replace('_', ' ').title() }}
+                </span>
+                <button type="button" class="btn btn-outline-primary" id="refreshButton">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-4 mb-md-0">
+            <!-- Tuning Progress Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Tuning Progress</h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4" id="statusContainer">
+                        {% if model_run.status == 'tuning' %}
+                        <div class="spinner-border text-primary mb-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h5 class="mb-1">Tuning in Progress</h5>
+                        <p class="text-muted mb-0" id="timeElapsed">Elapsed: 0 min 0 sec</p>
+                        {% elif model_run.status == 'completed' %}
+                        <div class="mb-3">
+                            <i class="fas fa-check-circle text-success fa-4x"></i>
+                        </div>
+                        <h5 class="mb-1">Tuning Complete</h5>
+                        <p class="text-muted mb-0">Optimal hyperparameters have been identified</p>
+                        {% elif model_run.status == 'failed' %}
+                        <div class="mb-3">
+                            <i class="fas fa-times-circle text-danger fa-4x"></i>
+                        </div>
+                        <h5 class="mb-1">Tuning Failed</h5>
+                        <p class="text-muted mb-0">An error occurred during hyperparameter tuning</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="progress mb-3" style="height: 8px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" 
+                             style="width: {{ '100%' if model_run.status == 'completed' else '75%' if model_run.status == 'tuning' else '0%' }}" 
+                             aria-valuenow="{{ 100 if model_run.status == 'completed' else 75 if model_run.status == 'tuning' else 0 }}" 
+                             aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    
+                    {% if model_run.status == 'tuning' %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        This process may take several minutes. You can leave this page and come back later, or you will receive an email when tuning is complete.
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-4">
+                        <h6 class="mb-2">Tuning Strategy</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <tbody>
+                                    <tr>
+                                        <th scope="row" class="w-50">Algorithm</th>
+                                        <td>{{ model_run.algorithm }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Type</th>
+                                        <td>{{ model_run.model_type|capitalize }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Problem Type</th>
+                                        <td>{{ experiment.problem_type|capitalize }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Optimization Method</th>
+                                        <td>
+                                            {% if current_user.is_pro %}
+                                            Bayesian Optimization
+                                            {% else %}
+                                            Random Search
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Evaluation Strategy</th>
+                                        <td>5-Fold Cross Validation</td>
+                                    </tr>
+                                    <tr>
+                                        <th scope="row">Trials</th>
+                                        <td>
+                                            {% if current_user.is_pro %}
+                                            50 trials
+                                            {% else %}
+                                            20 trials
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <!-- Best Parameters (shown when tuning completes) -->
+                    <div id="bestParamsContainer" class="d-none">
+                        <h6 class="mb-2">Best Hyperparameters</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover" id="bestParamsTable">
+                                <tbody>
+                                    <!-- Will be populated by JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                {% if model_run.status == 'failed' %}
+                <div class="card-footer bg-light">
+                    <div class="d-grid">
+                        <button class="btn btn-primary" onclick="retryTuning()">
+                            <i class="fas fa-redo me-2"></i>Retry Tuning
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Actions Card (visible only when tuning is complete) -->
+            <div class="card shadow-sm d-none" id="actionsCard">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Next Steps</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('project.train_model', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-primary" id="trainModelBtn">
+                            <i class="fas fa-play-circle me-2"></i>Train Model with Optimal Parameters
+                        </a>
+                        <a href="{{ url_for('project.configure_hyperparameters', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-sliders-h me-2"></i>Manually Adjust Parameters
+                        </a>
+                        <a href="{{ url_for('project.model_recommendations', experiment_id=experiment.id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-plus-circle me-2"></i>Try Different Algorithms
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <!-- Tuning Logs -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Tuning Logs</h5>
+                        <button class="btn btn-sm btn-outline-secondary" id="copyLogsButton">
+                            <i class="fas fa-copy me-1"></i>Copy Logs
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="log-container bg-dark text-light p-3" style="height: 300px; overflow-y: auto;" id="logsContainer">
+                        {% if model_run.logs %}
+                        <pre style="white-space: pre-wrap; margin-bottom: 0;">{{ model_run.logs }}</pre>
+                        {% else %}
+                        <pre style="white-space: pre-wrap; margin-bottom: 0;">Waiting for logs...</pre>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tuning Metrics Visualization -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Hyperparameter Optimization</h5>
+                </div>
+                <div class="card-body">
+                    <div id="noMetricsContainer" class="text-center py-5">
+                        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                        <h6 class="text-muted">Metrics will appear here during tuning</h6>
+                        <p class="text-muted mb-0 small">Visualization will show how performance changes with different hyperparameter values</p>
+                    </div>
+                    
+                    <div id="metricsContainer" class="d-none">
+                        <h6 class="mb-3">Performance Across Trials</h6>
+                        <div class="chart-container" style="position: relative; height: 250px;">
+                            <canvas id="tuningProgressChart"></canvas>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h6 class="mb-3">Parameter Importance</h6>
+                            <div class="chart-container" style="position: relative; height: 200px;">
+                                <canvas id="parameterImportanceChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Initialize variables for tracking tuning status
+    let startTime = new Date();
+    const statusContainer = document.getElementById('statusContainer');
+    const logsContainer = document.getElementById('logsContainer');
+    const refreshButton = document.getElementById('refreshButton');
+    const copyLogsButton = document.getElementById('copyLogsButton');
+    const bestParamsContainer = document.getElementById('bestParamsContainer');
+    const actionsCard = document.getElementById('actionsCard');
+    const metricsContainer = document.getElementById('metricsContainer');
+    const noMetricsContainer = document.getElementById('noMetricsContainer');
+    
+    // Charts
+    let tuningProgressChart = null;
+    let parameterImportanceChart = null;
+    
+    // Tuning status polling
+    const checkTuningStatus = () => {
+        fetch('{{ url_for("project.tuning_status", experiment_id=experiment.id, model_run_id=model_run.id) }}')
+            .then(response => response.json())
+            .then(data => {
+                // Update logs
+                if (data.logs) {
+                    logsContainer.innerHTML = `<pre style="white-space: pre-wrap; margin-bottom: 0;">${data.logs}</pre>`;
+                    logsContainer.scrollTop = logsContainer.scrollHeight; // Auto-scroll to bottom
+                }
+                
+                // Check if status has changed
+                if (data.status !== '{{ model_run.status }}') {
+                    if (data.status === 'completed') {
+                        // Tuning completed
+                        statusContainer.innerHTML = `
+                            <div class="mb-3">
+                                <i class="fas fa-check-circle text-success fa-4x"></i>
+                            </div>
+                            <h5 class="mb-1">Tuning Complete</h5>
+                            <p class="text-muted mb-0">Optimal hyperparameters have been identified</p>
+                        `;
+                        document.querySelector('.progress-bar').style.width = '100%';
+                        
+                        // Show best parameters
+                        if (data.best_params) {
+                            showBestParameters(data.best_params);
+                        }
+                        
+                        // Show metrics if available
+                        if (data.tuning_metrics) {
+                            showTuningMetrics(data.tuning_metrics);
+                        }
+                        
+                        // Show actions card
+                        actionsCard.classList.remove('d-none');
+                        
+                        // Refresh page to show complete results
+                        //setTimeout(() => location.reload(), 2000);
+                    } else if (data.status === 'failed') {
+                        // Tuning failed
+                        statusContainer.innerHTML = `
+                            <div class="mb-3">
+                                <i class="fas fa-times-circle text-danger fa-4x"></i>
+                            </div>
+                            <h5 class="mb-1">Tuning Failed</h5>
+                            <p class="text-muted mb-0">An error occurred during hyperparameter tuning</p>
+                        `;
+                        document.querySelector('.progress-bar').style.width = '0%';
+                        
+                        // Refresh page to show error details
+                        setTimeout(() => location.reload(), 2000);
+                    }
+                }
+                
+                // Update tuning metrics if available
+                if (data.tuning_metrics) {
+                    showTuningMetrics(data.tuning_metrics);
+                }
+                
+                // Update best parameters if available
+                if (data.best_params) {
+                    showBestParameters(data.best_params);
+                }
+            })
+            .catch(error => {
+                console.error('Error checking tuning status:', error);
+            });
+    };
+    
+    // Display best parameters
+    function showBestParameters(params) {
+        bestParamsContainer.classList.remove('d-none');
+        const paramTable = document.getElementById('bestParamsTable');
+        paramTable.innerHTML = '';
+        
+        for (const [key, value] of Object.entries(params)) {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <th scope="row">${formatParamName(key)}</th>
+                <td>${formatParamValue(value)}</td>
+            `;
+            paramTable.appendChild(row);
+        }
+    }
+    
+    // Format parameter names for display
+    function formatParamName(name) {
+        // Convert snake_case to Title Case with spaces
+        return name.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+    }
+    
+    // Format parameter values for display
+    function formatParamValue(value) {
+        if (Array.isArray(value)) {
+            return value.join(', ');
+        } else if (typeof value === 'boolean') {
+            return value ? 'Yes' : 'No';
+        } else if (typeof value === 'number') {
+            // Format numbers nicely based on magnitude
+            return Math.abs(value) < 0.01 ? value.toExponential(2) : value.toString();
+        } else {
+            return value;
+        }
+    }
+    
+    // Show tuning metrics visualization
+    function showTuningMetrics(metrics) {
+        // Hide "no metrics" message and show metrics container
+        noMetricsContainer.classList.add('d-none');
+        metricsContainer.classList.remove('d-none');
+        
+        // Draw tuning progress chart
+        drawTuningProgressChart(metrics);
+        
+        // Draw parameter importance chart if available
+        if (metrics.param_importance) {
+            drawParameterImportanceChart(metrics.param_importance);
+        }
+    }
+    
+    // Draw tuning progress chart
+    function drawTuningProgressChart(metrics) {
+        const ctx = document.getElementById('tuningProgressChart').getContext('2d');
+        
+        // Extract trial data
+        let trialNumbers = [];
+        let scores = [];
+        let bestScores = [];
+        
+        if (metrics.trials) {
+            metrics.trials.forEach((trial, index) => {
+                trialNumbers.push(index + 1);
+                scores.push(trial.score);
+                
+                // Calculate best score seen so far
+                if (index === 0) {
+                    bestScores.push(trial.score);
+                } else {
+                    const prevBest = bestScores[index - 1];
+                    bestScores.push(Math.max(prevBest, trial.score));
+                }
+            });
+        }
+        
+        // Destroy existing chart if it exists
+        if (tuningProgressChart) {
+            tuningProgressChart.destroy();
+        }
+        
+        // Create new chart
+        tuningProgressChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: trialNumbers,
+                datasets: [
+                    {
+                        label: 'Trial Score',
+                        data: scores,
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                        pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        fill: false
+                    },
+                    {
+                        label: 'Best Score',
+                        data: bestScores,
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        pointBackgroundColor: 'rgba(75, 192, 192, 1)',
+                        pointRadius: 0,
+                        pointHoverRadius: 3,
+                        fill: false,
+                        borderWidth: 2,
+                        borderDash: [5, 5]
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Trial Number'
+                        }
+                    },
+                    y: {
+                        title: {
+                            display: true,
+                            text: '{{ "Accuracy" if experiment.problem_type == "classification" else "R² Score" }}'
+                        },
+                        min: 0,
+                        max: {{ "1" if experiment.problem_type == "classification" else "1" }}
+                    }
+                }
+            }
+        });
+    }
+    
+    // Draw parameter importance chart
+    function drawParameterImportanceChart(paramImportance) {
+        const ctx = document.getElementById('parameterImportanceChart').getContext('2d');
+        
+        // Extract parameter importance data
+        const params = [];
+        const importance = [];
+        
+        for (const [param, value] of Object.entries(paramImportance)) {
+            params.push(formatParamName(param));
+            importance.push(value);
+        }
+        
+        // Sort by importance (descending)
+        const combined = params.map((param, i) => ({ param, importance: importance[i] }));
+        combined.sort((a, b) => b.importance - a.importance);
+        
+        // Take top 5 parameters
+        const topParams = combined.slice(0, 5);
+        
+        // Destroy existing chart if it exists
+        if (parameterImportanceChart) {
+            parameterImportanceChart.destroy();
+        }
+        
+        // Create new chart
+        parameterImportanceChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: topParams.map(item => item.param),
+                datasets: [{
+                    label: 'Parameter Importance',
+                    data: topParams.map(item => item.importance),
+                    backgroundColor: 'rgba(153, 102, 255, 0.7)',
+                    borderColor: 'rgba(153, 102, 255, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Importance'
+                        }
+                    }
+                }
+            }
+        });
+    }
+    
+    // Update elapsed time 
+    const updateElapsedTime = () => {
+        const elapsedTimeElement = document.getElementById('timeElapsed');
+        if (elapsedTimeElement) {
+            const now = new Date();
+            const elapsedMs = now - startTime;
+            const minutes = Math.floor(elapsedMs / 60000);
+            const seconds = Math.floor((elapsedMs % 60000) / 1000);
+            elapsedTimeElement.textContent = `Elapsed: ${minutes} min ${seconds} sec`;
+        }
+    };
+    
+    // Set up periodic status checks
+    if ('{{ model_run.status }}' === 'tuning') {
+        // Check status every 5 seconds
+        const statusInterval = setInterval(checkTuningStatus, 5000);
+        // Update elapsed time every second
+        const timeInterval = setInterval(updateElapsedTime, 1000);
+        
+        // Clean up intervals when page is closed
+        window.addEventListener('beforeunload', () => {
+            clearInterval(statusInterval);
+            clearInterval(timeInterval);
+        });
+    }
+    
+    // Refresh button handler
+    refreshButton.addEventListener('click', () => {
+        checkTuningStatus();
+        // Visual feedback
+        const originalText = refreshButton.innerHTML;
+        refreshButton.innerHTML = '<i class="fas fa-sync-alt fa-spin me-1"></i>Refreshing...';
+        refreshButton.disabled = true;
+        
+        setTimeout(() => {
+            refreshButton.innerHTML = originalText;
+            refreshButton.disabled = false;
+        }, 1000);
+    });
+    
+    // Copy logs to clipboard
+    copyLogsButton.addEventListener('click', () => {
+        const logsText = logsContainer.innerText || '';
+        navigator.clipboard.writeText(logsText).then(() => {
+            // Visual feedback
+            const originalText = copyLogsButton.innerHTML;
+            copyLogsButton.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+            
+            setTimeout(() => {
+                copyLogsButton.innerHTML = originalText;
+            }, 2000);
+        });
+    });
+    
+    // Function to retry tuning
+    function retryTuning() {
+        if (confirm('Are you sure you want to retry hyperparameter tuning?')) {
+            showLoader('Restarting hyperparameter tuning...');
+            location.reload(); // In a real app, this would make an API call
+        }
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initial status check
+        if ('{{ model_run.status }}' === 'tuning') {
+            checkTuningStatus();
+        } else if ('{{ model_run.status }}' === 'completed') {
+            // Show actions card
+            actionsCard.classList.remove('d-none');
+            
+            // Show best parameters if available
+            {% if model_run.hyperparameters %}
+            showBestParameters({{ model_run.hyperparameters|tojson }});
+            {% endif %}
+            
+            // Show tuning metrics if available
+            {% if model_run.tuning_metrics %}
+            showTuningMetrics({{ model_run.tuning_metrics|tojson }});
+            {% endif %}
+        }
+        
+        // Auto-scroll logs to bottom
+        logsContainer.scrollTop = logsContainer.scrollHeight;
+    });
+</script>
+{% endblock %}

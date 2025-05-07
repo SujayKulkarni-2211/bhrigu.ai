@@ -1,0 +1,68 @@
+{
+  "model_type": "classical",
+  "algorithm": "RandomForest",
+  "problem_type": "classification",
+  "params": {
+    "n_estimators": 100,
+    "max_depth": 10,
+    "min_samples_split": 2,
+    "min_samples_leaf": 1,
+    "criterion": "gini"
+  },
+  "metrics": {
+    "accuracy": 0.2,
+    "precision": 0.197265399656704,
+    "recall": 0.2,
+    "f1": 0.195326198791229,
+    "roc_auc": 0.5315655358985699,
+    "problem_type": "classification"
+  },
+  "best_params": null,
+  "feature_importances": [
+    0.2630107328706557,
+    0.3273401184116727,
+    0.3484906382102103,
+    0.06115851050746138
+  ],
+  "confusion_matrix_data": [
+    [
+      2,
+      5,
+      5,
+      2,
+      6
+    ],
+    [
+      3,
+      8,
+      3,
+      6,
+      4
+    ],
+    [
+      2,
+      3,
+      5,
+      1,
+      5
+    ],
+    [
+      4,
+      2,
+      6,
+      1,
+      2
+    ],
+    [
+      5,
+      5,
+      8,
+      3,
+      4
+    ]
+  ],
+  "classification_report_data": "              precision    recall  f1-score   support\n\n           0       0.12      0.10      0.11        20\n           1       0.35      0.33      0.34        24\n           2       0.19      0.31      0.23        16\n           3       0.08      0.07      0.07        15\n           4       0.19      0.16      0.17        25\n\n    accuracy                           0.20       100\n   macro avg       0.19      0.19      0.19       100\nweighted avg       0.20      0.20      0.20       100\n",
+  "timestamp": "2025-05-05T08:52:13.672475",
+  "scaler_path": "C:\\Users\\sujay\\OneDrive\\Desktop\\bhrigu-ai\\pro\\models\\7b00f0ea-495f-476a-9c9e-953c8454e061_model.pkl_scaler.pkl",
+  "encoder_path": "C:\\Users\\sujay\\OneDrive\\Desktop\\bhrigu-ai\\pro\\models\\7b00f0ea-495f-476a-9c9e-953c8454e061_model.pkl_encoder.pkl"
+}

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}K-Fold Cross-Validation - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view_experiment', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item active">K-Fold Cross-Validation</li>
+                </ol>
+            </nav>
+            
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary-light">
+                    <h4 class="mb-0">K-Fold Cross-Validation</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-4">
+                        <h5>Experiment: {{ experiment.name }}</h5>
+                        <p class="text-muted">Get more reliable model performance estimates with K-Fold Cross-Validation</p>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> K-Fold Cross-Validation divides your dataset into multiple parts (folds) and trains multiple models to provide a more accurate assessment of model performance.
+                    </div>
+                    
+                    <div class="row align-items-center mb-4">
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="feature-icon bg-primary-light text-primary me-3">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1">Enhanced Metrics</h5>
+                                    <p class="text-muted mb-0">Get detailed performance metrics and confidence intervals</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex align-items-center">
+                                <div class="feature-icon bg-primary-light text-primary me-3">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1">Reliable Evaluation</h5>
+                                    <p class="text-muted mb-0">Make better decisions with more robust performance estimates</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card bg-light mb-4">
+                        <div class="card-body">
+                            <h5 class="card-title">One-Time Payment</h5>
+                            <h2 class="display-6 fw-bold">₹{{ price }}</h2>
+                            <p class="text-muted">Unlock K-Fold Cross-Validation for this experiment</p>
+                            
+                            <form action="{{ url_for('payment.process_k_fold_payment', experiment_id=experiment.id) }}" method="post">
+                                <button type="submit" class="btn btn-primary mt-3">
+                                    <i class="fas fa-credit-card me-2"></i> Pay Now
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div class="small text-muted">
+                        <p><i class="fas fa-lock me-1"></i> Secure payment processing. Your payment information is never stored on our servers.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mt-4">
+                <a href="{{ url_for('project.view_experiment', experiment_id=experiment.id) }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Experiment
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

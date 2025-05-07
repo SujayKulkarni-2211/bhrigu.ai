@@ -1,0 +1,358 @@
+{% extends "base.html" %}
+
+{% block title %}Upgrade to Pro - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Upgrade to Pro</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Upgrade to Pro</h2>
+            <p class="text-muted">Unlock advanced features and capabilities for better model performance</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Pro Features -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Why Upgrade to Pro?</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-4 mb-md-0">
+                            <div class="text-center">
+                                <img src="{{ url_for('static', filename='images/pro_features.png') }}" class="img-fluid rounded mb-3" alt="Pro Features" style="max-height: 200px;">
+                                <h5 class="text-gradient">Advanced Features</h5>
+                                <p class="text-muted">Access cutting-edge machine learning tools and algorithms</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-center">
+                                <img src="{{ url_for('static', filename='images/pro_performance.png') }}" class="img-fluid rounded mb-3" alt="Better Performance" style="max-height: 200px;">
+                                <h5 class="text-gradient">Better Performance</h5>
+                                <p class="text-muted">Achieve higher accuracy with advanced hyperparameter tuning</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <h5 class="mb-3">Pro Unlocks These Features:</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="feature-icon-small bg-primary-light text-primary me-3 mt-1">
+                                    <i class="fas fa-atom"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Quantum ML Models</h6>
+                                    <p class="text-muted small mb-0">Next-generation quantum machine learning algorithms</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="feature-icon-small bg-success-light text-success me-3 mt-1">
+                                    <i class="fas fa-brain"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Advanced Neural Networks</h6>
+                                    <p class="text-muted small mb-0">LSTM, GRU, and other advanced neural architectures</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="feature-icon-small bg-warning-light text-warning me-3 mt-1">
+                                    <i class="fas fa-magic"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Bayesian Optimization</h6>
+                                    <p class="text-muted small mb-0">Smarter hyperparameter tuning with Bayesian methods</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="feature-icon-small bg-info-light text-info me-3 mt-1">
+                                    <i class="fas fa-server"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">API Deployment</h6>
+                                    <p class="text-muted small mb-0">Deploy models as REST APIs for production use</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="feature-icon-small bg-danger-light text-danger me-3 mt-1">
+                                    <i class="fas fa-code-branch"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">K-Fold Cross Validation</h6>
+                                    <p class="text-muted small mb-0">More reliable model evaluation techniques</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex">
+                                <div class="feature-icon-small bg-primary-light text-primary me-3 mt-1">
+                                    <i class="fas fa-tachometer-alt"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Priority Computing</h6>
+                                    <p class="text-muted small mb-0">Faster model training with dedicated resources</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Subscription Plans -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Choose Your Plan</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-md-6 mb-4 mb-md-0">
+                            <div class="card tier-card h-100 border-primary">
+                                <div class="card-header text-center bg-primary text-white py-3">
+                                    <h5 class="mb-0">Monthly Plan</h5>
+                                </div>
+                                <div class="card-body text-center p-4">
+                                    <h2 class="card-title mb-3">₹{{ monthly_price }}</h2>
+                                    <p class="text-muted mb-4">per month</p>
+                                    
+                                    <ul class="list-unstyled text-start mb-4">
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>All Pro Features</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Cancel Anytime</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Unlimited Projects</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Priority Support</li>
+                                    </ul>
+                                    
+                                    <form method="POST" action="{{ url_for('project.pay_for_pro', experiment_id=experiment.id) }}">
+                                        <input type="hidden" name="subscription_type" value="monthly">
+                                        <div class="d-grid">
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-arrow-right me-2"></i>Choose Monthly
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card tier-card h-100 border-success">
+                                <div class="card-header text-center bg-success text-white py-3">
+                                    <h5 class="mb-0">Annual Plan</h5>
+                                    <span class="badge bg-warning mt-1">Save 17%</span>
+                                </div>
+                                <div class="card-body text-center p-4">
+                                    <h2 class="card-title mb-3">₹{{ yearly_price }}</h2>
+                                    <p class="text-muted mb-4">per year</p>
+                                    
+                                    <ul class="list-unstyled text-start mb-4">
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>All Pro Features</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>2 Months Free</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Unlimited Projects</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Priority Support</li>
+                                        <li class="mb-2"><i class="fas fa-check-circle text-success me-2"></i>Advanced Reports</li>
+                                    </ul>
+                                    
+                                    <form method="POST" action="{{ url_for('project.pay_for_pro', experiment_id=experiment.id) }}">
+                                        <input type="hidden" name="subscription_type" value="yearly">
+                                        <div class="d-grid">
+                                            <button type="submit" class="btn btn-success">
+                                                <i class="fas fa-crown me-2"></i>Choose Annual
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-light text-center py-3">
+                    <p class="small text-muted mb-0">
+                        Secure payment powered by Razorpay. All plans include a 7-day money-back guarantee.
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Customer Testimonials -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">What Pro Users Say</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item p-4">
+                            <div class="d-flex mb-3">
+                                <div class="me-3">
+                                    <img src="{{ url_for('static', filename='images/testimonial1.jpg') }}" class="rounded-circle" width="50" height="50" alt="User Testimonial">
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Priya Sharma</h6>
+                                    <p class="text-muted small mb-0">Data Scientist</p>
+                                </div>
+                            </div>
+                            <p class="mb-0">"The Quantum ML models have given me a competitive edge in Kaggle competitions. Well worth the upgrade!"</p>
+                        </div>
+                        <div class="list-group-item p-4">
+                            <div class="d-flex mb-3">
+                                <div class="me-3">
+                                    <img src="{{ url_for('static', filename='images/testimonial2.jpg') }}" class="rounded-circle" width="50" height="50" alt="User Testimonial">
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Rajesh Kumar</h6>
+                                    <p class="text-muted small mb-0">ML Engineer</p>
+                                </div>
+                            </div>
+                            <p class="mb-0">"The API deployment feature saves me hours of DevOps work. I can focus on the models instead of infrastructure."</p>
+                        </div>
+                        <div class="list-group-item p-4">
+                            <div class="d-flex mb-3">
+                                <div class="me-3">
+                                    <img src="{{ url_for('static', filename='images/testimonial3.jpg') }}" class="rounded-circle" width="50" height="50" alt="User Testimonial">
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Amit Patel</h6>
+                                    <p class="text-muted small mb-0">AI Researcher</p>
+                                </div>
+                            </div>
+                            <p class="mb-0">"Bayesian hyperparameter tuning improved my model accuracy by 7% with no additional effort. Impressive!"</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- FAQ Card -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Frequently Asked Questions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingOne">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="false" aria-controls="collapseOne">
+                                    Can I cancel my subscription?
+                                </button>
+                            </h2>
+                            <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="headingOne" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Yes, you can cancel your subscription at any time. For monthly plans, you'll continue to have access until the end of your current billing cycle. For annual plans, you'll have access until the end of your annual term.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                    What payment methods do you accept?
+                                </button>
+                            </h2>
+                            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    We accept all major credit and debit cards, UPI payments, net banking, and wallets like PayTM, PhonePe, and Google Pay through our secure payment partner Razorpay.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingThree">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                                    Is there a free trial?
+                                </button>
+                            </h2>
+                            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    We don't offer a free trial, but we do have a 7-day money-back guarantee. If you're not satisfied with the Pro features, you can request a full refund within 7 days of purchasing.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingFour">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                                    What happens to my existing projects?
+                                </button>
+                            </h2>
+                            <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    All your existing projects and models will remain accessible. Once you upgrade to Pro, you'll instantly get access to Pro features for all your existing and future projects.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingFive">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
+                                    Do you offer team or enterprise plans?
+                                </button>
+                            </h2>
+                            <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Yes, we offer team and enterprise plans with additional features like team collaboration, custom model hosting, and dedicated support. Contact our sales team at <a href="mailto:enterprise@bhrigu.ai">enterprise@bhrigu.ai</a> for more information.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 text-center">
+                        <p class="mb-2">Still have questions?</p>
+                        <a href="{{ url_for('dashboard.contact') }}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-question-circle me-1"></i>Contact Support
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Money Back Guarantee Modal -->
+<div class="modal fade" id="guaranteeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">7-Day Money Back Guarantee</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>We're confident you'll love the Pro features, but if you're not satisfied for any reason, you can request a full refund within 7 days of your purchase.</p>
+                <p>To request a refund, simply contact our support team at <a href="mailto:support@bhrigu.ai">support@bhrigu.ai</a> or through the Support section in your dashboard.</p>
+                <p><strong>Note:</strong> Refunds are processed within 5-7 business days, depending on your payment method.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add event listeners for plan selection if needed
+        
+        // Money back guarantee link
+        const guaranteeLinks = document.querySelectorAll('.guarantee-link');
+        guaranteeLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const guaranteeModal = new bootstrap.Modal(document.getElementById('guaranteeModal'));
+                guaranteeModal.show();
+            });
+        });
+    });
+</script>
+{% endblock %}

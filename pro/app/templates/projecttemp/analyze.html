@@ -1,0 +1,444 @@
+{% extends "base.html" %}
+
+{% block title %}Analyze Dataset - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Analyze Dataset</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Analyze Dataset</h2>
+            <p class="text-muted">Step 2: Explore your data and select features for analysis</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Dataset Overview -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Dataset Overview</h5>
+                        <span class="badge bg-info">{{ data_info.num_rows }} Rows × {{ data_info.num_cols }} Columns</span>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body py-3">
+                                    <h6 class="card-title mb-3">Numerical Features</h6>
+                                    <div class="d-flex align-items-center">
+                                        <div class="feature-icon-small bg-primary-light text-primary me-3">
+                                            <i class="fas fa-chart-line"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="mb-0">{{ data_info.numeric_columns|length }}</h4>
+                                            <p class="text-muted mb-0 small">Numerical features</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-body py-3">
+                                    <h6 class="card-title mb-3">Categorical Features</h6>
+                                    <div class="d-flex align-items-center">
+                                        <div class="feature-icon-small bg-success-light text-success me-3">
+                                            <i class="fas fa-list"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="mb-0">{{ data_info.categorical_columns|length }}</h4>
+                                            <p class="text-muted mb-0 small">Categorical features</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Dataset Preview -->
+                    <h6 class="mb-3">Dataset Preview</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered">
+                            <thead class="table">
+                                <tr>
+                                    {% for column in data_info.columns %}
+                                    <th>{{ column }}</th>
+                                    {% endfor %}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for row in data_info.sample_data %}
+                                <tr>
+                                    {% for column in data_info.columns %}
+                                    <td>{{ row[column] }}</td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="text-muted small mb-0 mt-2">Showing first 5 rows of data</div>
+                </div>
+            </div>
+            
+            <!-- Feature Selection Form -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Configure Analysis</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="POST" action="{{ url_for('project.analyze_dataset', experiment_id=experiment.id) }}">
+                        <div class="mb-4">
+                            <label class="form-label">Problem Type</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="problem_type" id="classification" value="classification" checked>
+                                        <label class="form-check-label" for="classification">
+                                            <i class="fas fa-tags me-2 text-primary"></i>Classification
+                                            <div class="text-muted small">Predict categories or classes</div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="problem_type" id="regression" value="regression">
+                                        <label class="form-check-label" for="regression">
+                                            <i class="fas fa-chart-line me-2 text-success"></i>Regression
+                                            <div class="text-muted small">Predict continuous values</div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="target_column" class="form-label">Target Column (what to predict)</label>
+                            <select class="form-select" id="target_column" name="target_column" required>
+                                <option value="" selected disabled>Select the column to predict</option>
+                                {% for column in data_info.columns %}
+                                <option value="{{ column }}">{{ column }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">This is the outcome you want to predict with your model</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Feature Columns (inputs for prediction)</label>
+                            <div class="alert p-3 mb-2">
+                                <div class="mb-2">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAll">
+                                        <label class="form-check-label fw-medium" for="selectAll">
+                                            Select/Deselect All Features
+                                        </label>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    {% for column in data_info.columns %}
+                                    <div class="col-md-6 mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input feature-checkbox" type="checkbox" 
+                                                   name="feature_columns" id="feature_{{ loop.index }}" 
+                                                   value="{{ column }}" checked>
+                                            <label class="form-check-label" for="feature_{{ loop.index }}">
+                                                {{ column }}
+                                                {% if column in data_info.numeric_columns %}
+                                                <span class="badge bg-primary-light text-primary">Numeric</span>
+                                                {% else %}
+                                                <span class="badge bg-success-light text-success">Categorical</span>
+                                                {% endif %}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="form-text">These are the features your model will use to make predictions</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="form-label">Data Type</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="data_type" id="tabular" value="tabular" checked>
+                                        <label class="form-check-label" for="tabular">
+                                            <i class="fas fa-table me-2 text-primary"></i>Tabular Data
+                                            <div class="text-muted small">Standard table format</div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="data_type" id="time_series" value="time_series" disabled>
+                                        <label class="form-check-label" for="time_series">
+                                            <i class="fas fa-chart-area me-2 text-success"></i>Time Series
+                                            <div class="text-muted small">Pro feature</div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check-circle me-2"></i>Continue to Model Selection
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Process Steps -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Process Steps</h5>
+                </div>
+                <div class="card-body">
+                    <div class="steps">
+                        <div class="step completed">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3 bg-success text-white">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">Upload Dataset</h6>
+                                    <p class="text-muted mb-0 small">Completed</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step active">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3">2</div>
+                                <div>
+                                    <h6 class="mb-1">Analyze Data</h6>
+                                    <p class="text-muted mb-0 small">Explore and prepare your dataset</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step disabled">
+                            <div class="d-flex mb-3">
+                                <div class="process-step-circle me-3 bg-secondary">3</div>
+                                <div>
+                                    <h6 class="mb-1 text-muted">Select Models</h6>
+                                    <p class="text-muted mb-0 small">Choose ML models to train</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="step disabled">
+                            <div class="d-flex">
+                                <div class="process-step-circle me-3 bg-secondary">4</div>
+                                <div>
+                                    <h6 class="mb-1 text-muted">Train & Evaluate</h6>
+                                    <p class="text-muted mb-0 small">Train models and view results</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Data Quality -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Data Quality</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">Missing Values</h6>
+                                    {% set total_missing = namespace(value=0) %}
+                                    {% for col, count in data_info.missing_values.items() %}
+                                        {% set total_missing.value = total_missing.value + count %}
+                                    {% endfor %}
+                                    
+                                    {% set missing_percent = (total_missing.value / (data_info.num_rows * data_info.num_cols) * 100)|round(2) %}
+                                    
+                                    {% if missing_percent < 5 %}
+                                        <p class="mb-0 small text-success">Low ({{ missing_percent }}%)</p>
+                                    {% elif missing_percent < 15 %}
+                                        <p class="mb-0 small text-warning">Moderate ({{ missing_percent }}%)</p>
+                                    {% else %}
+                                        <p class="mb-0 small text-danger">High ({{ missing_percent }}%)</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <span class="badge rounded-pill bg-light text-dark">
+                                        {{ total_missing.value }} values
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">Feature Balance</h6>
+                                    {% set balance_ratio = (data_info.numeric_columns|length / data_info.columns|length * 100)|round(0) %}
+                                    <p class="mb-0 small text-info">{{ balance_ratio }}% numerical features</p>
+                                </div>
+                                <div>
+                                    <div class="progress" style="width: 100px; height: 8px;">
+                                        <div class="progress-bar" role="progressbar" style="width: {{ balance_ratio }}%"
+                                             aria-valuenow="{{ balance_ratio }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">Sample Size</h6>
+                                    {% if data_info.num_rows < 100 %}
+                                        <p class="mb-0 small text-danger">Very small (may affect model quality)</p>
+                                    {% elif data_info.num_rows < 1000 %}
+                                        <p class="mb-0 small text-warning">Small (sufficient for simple models)</p>
+                                    {% elif data_info.num_rows < 10000 %}
+                                        <p class="mb-0 small text-success">Good (suitable for most models)</p>
+                                    {% else %}
+                                        <p class="mb-0 small text-primary">Excellent (suitable for advanced models)</p>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <span class="badge rounded-pill bg-light text-dark">
+                                        {{ data_info.num_rows }} rows
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Correlation Matrix -->
+            {% if data_info.correlation_image %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Correlation Matrix</h5>
+                </div>
+                <div class="card-body text-center">
+                    <img src="data:image/png;base64,{{ data_info.correlation_image }}" 
+                         alt="Correlation Matrix" class="img-fluid">
+                    <p class="text-muted small mt-2 mb-0">Correlation between numerical features</p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Feature Stats -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Feature Statistics</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="accordion" id="featureStatsAccordion">
+                        {% for column in data_info.numeric_columns %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading{{ loop.index }}">
+                                <button class="accordion-button collapsed" type="button" 
+                                        data-bs-toggle="collapse" data-bs-target="#collapse{{ loop.index }}" 
+                                        aria-expanded="false" aria-controls="collapse{{ loop.index }}">
+                                    {{ column }} 
+                                    <span class="badge bg-primary-light text-primary ms-2">Numeric</span>
+                                </button>
+                            </h2>
+                            <div id="collapse{{ loop.index }}" class="accordion-collapse collapse" 
+                                 aria-labelledby="heading{{ loop.index }}" data-bs-parent="#featureStatsAccordion">
+                                <div class="accordion-body">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <p class="mb-1"><strong>Mean:</strong> {{ data_info.statistics[column].mean|round(2) }}</p>
+                                            <p class="mb-1"><strong>Median:</strong> {{ data_info.statistics[column]['50%']|round(2) }}</p>
+                                            <p class="mb-1"><strong>Std:</strong> {{ data_info.statistics[column].std|round(2) }}</p>
+                                        </div>
+                                        <div class="col-6">
+                                            <p class="mb-1"><strong>Min:</strong> {{ data_info.statistics[column].min|round(2) }}</p>
+                                            <p class="mb-1"><strong>Max:</strong> {{ data_info.statistics[column].max|round(2) }}</p>
+                                            <p class="mb-1"><strong>Missing:</strong> {{ data_info.missing_values.get(column, 0) }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        {% for column in data_info.categorical_columns %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingCat{{ loop.index }}">
+                                <button class="accordion-button collapsed" type="button" 
+                                        data-bs-toggle="collapse" data-bs-target="#collapseCat{{ loop.index }}" 
+                                        aria-expanded="false" aria-controls="collapseCat{{ loop.index }}">
+                                    {{ column }} 
+                                    <span class="badge bg-success-light text-success ms-2">Categorical</span>
+                                </button>
+                            </h2>
+                            <div id="collapseCat{{ loop.index }}" class="accordion-collapse collapse" 
+                                 aria-labelledby="headingCat{{ loop.index }}" data-bs-parent="#featureStatsAccordion">
+                                <div class="accordion-body">
+                                    <p><strong>Unique Values:</strong> {{ data_info.categorical_values[column]|length }}</p>
+                                    <p><strong>Top Values:</strong></p>
+                                    <ul class="mb-1">
+                                        {% for value, count in data_info.categorical_values[column].items() %}
+                                        <li>{{ value }}: {{ count }} occurrences</li>
+                                        {% endfor %}
+                                    </ul>
+                                    <p class="mb-1"><strong>Missing:</strong> {{ data_info.missing_values.get(column, 0) }}</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Target column selection updates feature checkboxes
+    document.getElementById('target_column').addEventListener('change', function() {
+        const targetColumn = this.value;
+        const featureCheckboxes = document.querySelectorAll('.feature-checkbox');
+        
+        featureCheckboxes.forEach(checkbox => {
+            if (checkbox.value === targetColumn) {
+                checkbox.checked = false;
+                checkbox.disabled = true;
+            } else {
+                checkbox.disabled = false;
+            }
+        });
+    });
+    
+    // Select all features toggle
+    document.getElementById('selectAll').addEventListener('change', function() {
+        const featureCheckboxes = document.querySelectorAll('.feature-checkbox:not(:disabled)');
+        featureCheckboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+    
+    // Problem type selection
+    document.querySelectorAll('input[name="problem_type"]').forEach(radio => {
+        radio.addEventListener('change', function() {
+            // You could add logic here to recommend target columns based on problem type
+            // Or dynamically update UI elements
+        });
+    });
+</script>
+{% endblock %}

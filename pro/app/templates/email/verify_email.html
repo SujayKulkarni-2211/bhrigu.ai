@@ -1,0 +1,117 @@
+<!-- app/templates/email/verify_email.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Your Bhrigu AI Account</title>
+    <style>
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333333;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f7fa;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .logo {
+            max-width: 150px;
+            height: auto;
+        }
+        .content {
+            padding: 30px 20px;
+        }
+        .verification-button {
+            display: inline-block;
+            background-color: #4361ee;
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 12px 24px;
+            margin: 20px 0;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .verification-button:hover {
+            background-color: #3a56d4;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #6c757d;
+            font-size: 14px;
+            border-top: 1px solid #eee;
+        }
+        .help-text {
+            font-size: 14px;
+            color: #6c757d;
+            margin-top: 20px;
+        }
+        .verification-code {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 16px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        @media only screen and (max-width: 600px) {
+            .container {
+                width: 100%;
+                border-radius: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="https://bhrigu.ai/static/images/logo.png" alt="Bhrigu AI Logo" class="logo">
+            <h1 style="color: #4361ee;">Verify Your Email Address</h1>
+        </div>
+        <div class="content">
+            <p>Hello,</p>
+            <p>Thank you for registering with Bhrigu AI. To complete your registration and access our platform, please verify your email address by clicking the button below:</p>
+            
+            <div style="text-align: center;">
+                <a href="{{ verification_url }}" class="verification-button">Verify Email Address</a>
+            </div>
+            
+            <p>The verification link will expire in 24 hours.</p>
+            
+            <p>If you're having trouble with the button above, you can also copy and paste the following URL into your browser:</p>
+            
+            <p class="verification-code">{{ verification_url }}</p>
+            
+            <p>If you did not register for a Bhrigu AI account, please disregard this email.</p>
+            
+            <p>Best regards,<br>The Bhrigu AI Team</p>
+            
+            <div class="help-text">
+                <p>Need help? Contact us at <a href="mailto:support@bhrigu.ai">support@bhrigu.ai</a></p>
+            </div>
+        </div>
+        <div class="footer">
+            <p class="mb-0">&copy; 2025 Bhrigu AI. All rights reserved.</p>
+            <p>
+                <a href="https://bhrigu.ai/privacy" style="color: #4361ee; text-decoration: none;">Privacy Policy</a> | 
+                <a href="https://bhrigu.ai/terms" style="color: #4361ee; text-decoration: none;">Terms of Service</a>
+            </p>
+        </div>
+    </div>
+</body>
+</html>

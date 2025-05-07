@@ -1,0 +1,743 @@
+{% extends "base.html" %}
+
+{% block title %}Configure Hyperparameters - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.hyperparameter_choice', experiment_id=experiment.id, model_run_id=model_run.id) }}">Hyperparameter Choice</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Manual Configuration</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">Configure {{ model_run.algorithm }} Hyperparameters</h2>
+            <p class="text-muted">Customize model parameters to optimize performance</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Hyperparameter Form Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Hyperparameter Settings</h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex">
+                            <i class="fas fa-info-circle fa-lg me-3 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1">Manual Configuration</h6>
+                                <p class="mb-0">Default values are pre-filled based on common settings for {{ model_run.algorithm }}. Adjust the parameters based on your knowledge of the algorithm and dataset.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="POST" action="{{ url_for('project.configure_hyperparameters', experiment_id=experiment.id, model_run_id=model_run.id) }}">
+                        
+                        {% if 'RandomForest' in model_run.algorithm %}
+                        <!-- Random Forest Parameters -->
+                        <div class="mb-4">
+                            <label for="n_estimators" class="form-label">Number of Trees</label>
+                            <input type="number" class="form-control" id="n_estimators" name="n_estimators" 
+                                   value="{{ default_params.n_estimators|default(100) }}" min="10" max="1000">
+                            <div class="form-text">The number of trees in the forest. More trees generally improve performance but increase training time.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="max_depth" class="form-label">Maximum Depth</label>
+                            <input type="number" class="form-control" id="max_depth" name="max_depth" 
+                                   value="{{ default_params.max_depth|default(10) }}" min="1" max="100">
+                            <div class="form-text">The maximum depth of each tree. Deeper trees can model more complex patterns but may overfit.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="min_samples_split" class="form-label">Minimum Samples to Split</label>
+                            <input type="number" class="form-control" id="min_samples_split" name="min_samples_split" 
+                                   value="{{ default_params.min_samples_split|default(2) }}" min="2" max="20">
+                            <div class="form-text">The minimum number of samples required to split an internal node.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="min_samples_leaf" class="form-label">Minimum Samples per Leaf</label>
+                            <input type="number" class="form-control" id="min_samples_leaf" name="min_samples_leaf" 
+                                   value="{{ default_params.min_samples_leaf|default(1) }}" min="1" max="20">
+                            <div class="form-text">The minimum number of samples required to be at a leaf node.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="criterion" class="form-label">Split Criterion</label>
+                            <select class="form-select" id="criterion" name="criterion">
+                                {% if experiment.problem_type == 'classification' %}
+                                <option value="gini" {% if default_params.criterion == 'gini' %}selected{% endif %}>Gini Impurity</option>
+                                <option value="entropy" {% if default_params.criterion == 'entropy' %}selected{% endif %}>Entropy</option>
+                                {% else %}
+                                <option value="squared_error" {% if default_params.criterion == 'squared_error' %}selected{% endif %}>Squared Error</option>
+                                <option value="absolute_error" {% if default_params.criterion == 'absolute_error' %}selected{% endif %}>Absolute Error</option>
+                                <option value="poisson" {% if default_params.criterion == 'poisson' %}selected{% endif %}>Poisson</option>
+                                {% endif %}
+                            </select>
+                            <div class="form-text">The function to measure the quality of a split.</div>
+                        </div>
+                        
+                        {% elif model_run.algorithm == 'LogisticRegression' %}
+                        <!-- Logistic Regression Parameters -->
+                        <div class="mb-4">
+                            <label for="C" class="form-label">Regularization Strength (C)</label>
+                            <input type="number" class="form-control" id="C" name="C" 
+                                   value="{{ default_params.C|default(1.0) }}" min="0.001" max="1000" step="0.001">
+                            <div class="form-text">Inverse of regularization strength. Smaller values specify stronger regularization.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="max_iter" class="form-label">Maximum Iterations</label>
+                            <input type="number" class="form-control" id="max_iter" name="max_iter" 
+                                   value="{{ default_params.max_iter|default(1000) }}" min="100" max="10000" step="100">
+                            <div class="form-text">Maximum number of iterations for the solver to converge.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="solver" class="form-label">Solver Algorithm</label>
+                            <select class="form-select" id="solver" name="solver">
+                                <option value="liblinear" {% if default_params.solver == 'liblinear' %}selected{% endif %}>liblinear</option>
+                                <option value="lbfgs" {% if default_params.solver == 'lbfgs' %}selected{% endif %}>L-BFGS</option>
+                                <option value="newton-cg" {% if default_params.solver == 'newton-cg' %}selected{% endif %}>Newton-CG</option>
+                                <option value="sag" {% if default_params.solver == 'sag' %}selected{% endif %}>SAG</option>
+                                <option value="saga" {% if default_params.solver == 'saga' %}selected{% endif %}>SAGA</option>
+                            </select>
+                            <div class="form-text">Algorithm to use in the optimization problem. Different solvers are suited for different problem types.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="penalty" class="form-label">Penalty Type</label>
+                            <select class="form-select" id="penalty" name="penalty">
+                                <option value="l2" {% if default_params.penalty == 'l2' %}selected{% endif %}>L2 (Ridge)</option>
+                                <option value="l1" {% if default_params.penalty == 'l1' %}selected{% endif %}>L1 (Lasso)</option>
+                                <option value="elasticnet" {% if default_params.penalty == 'elasticnet' %}selected{% endif %}>ElasticNet</option>
+                                <option value="none" {% if default_params.penalty == 'none' %}selected{% endif %}>None</option>
+                            </select>
+                            <div class="form-text">Specifies the norm used in the penalization. L1 can provide feature selection.</div>
+                        </div>
+                        
+                        {% elif model_run.algorithm == 'LinearRegression' %}
+                        <!-- Linear Regression Parameters -->
+                        <div class="mb-4">
+                            <label for="fit_intercept" class="form-label">Fit Intercept</label>
+                            <select class="form-select" id="fit_intercept" name="fit_intercept">
+                                <option value="True" {% if default_params.fit_intercept %}selected{% endif %}>Yes</option>
+                                <option value="False" {% if not default_params.fit_intercept %}selected{% endif %}>No</option>
+                            </select>
+                            <div class="form-text">Whether to calculate the intercept for this model. If set to False, no intercept will be used.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="normalize" class="form-label">Normalize</label>
+                            <select class="form-select" id="normalize" name="normalize">
+                                <option value="True" {% if default_params.normalize %}selected{% endif %}>Yes</option>
+                                <option value="False" {% if not default_params.normalize %}selected{% endif %}>No</option>
+                            </select>
+                            <div class="form-text">If True, the regressors will be normalized before regression by subtracting the mean and dividing by the L2-norm.</div>
+                        </div>
+                        
+                        {% elif model_run.algorithm in ['SVC', 'SVR'] %}
+                        <!-- SVM Parameters -->
+                        <div class="mb-4">
+                            <label for="C" class="form-label">Regularization Parameter (C)</label>
+                            <input type="number" class="form-control" id="C" name="C" 
+                                   value="{{ default_params.C|default(1.0) }}" min="0.001" max="1000" step="0.001">
+                            <div class="form-text">Regularization parameter. The strength of the regularization is inversely proportional to C.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="kernel" class="form-label">Kernel Type</label>
+                            <select class="form-select" id="kernel" name="kernel">
+                                <option value="rbf" {% if default_params.kernel == 'rbf' %}selected{% endif %}>Radial Basis Function (RBF)</option>
+                                <option value="linear" {% if default_params.kernel == 'linear' %}selected{% endif %}>Linear</option>
+                                <option value="poly" {% if default_params.kernel == 'poly' %}selected{% endif %}>Polynomial</option>
+                                <option value="sigmoid" {% if default_params.kernel == 'sigmoid' %}selected{% endif %}>Sigmoid</option>
+                            </select>
+                            <div class="form-text">Specifies the kernel type to be used in the algorithm. Different kernels are suited for different problem types.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="gamma" class="form-label">Kernel Coefficient (gamma)</label>
+                            <select class="form-select" id="gamma" name="gamma">
+                                <option value="scale" {% if default_params.gamma == 'scale' %}selected{% endif %}>Scale</option>
+                                <option value="auto" {% if default_params.gamma == 'auto' %}selected{% endif %}>Auto</option>
+                            </select>
+                            <div class="form-text">Kernel coefficient for 'rbf', 'poly' and 'sigmoid'. 'scale' uses 1/(n_features * X.var()) and 'auto' uses 1/n_features.</div>
+                        </div>
+                        
+                        {% elif model_run.algorithm in ['DecisionTree', 'DecisionTreeRegressor'] %}
+                        <!-- Decision Tree Parameters -->
+                        <div class="mb-4">
+                            <label for="max_depth" class="form-label">Maximum Depth</label>
+                            <input type="number" class="form-control" id="max_depth" name="max_depth" 
+                                   value="{{ default_params.max_depth|default(10) }}" min="1" max="100">
+                            <div class="form-text">The maximum depth of the tree. Deeper trees can model more complex patterns but may overfit.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="min_samples_split" class="form-label">Minimum Samples to Split</label>
+                            <input type="number" class="form-control" id="min_samples_split" name="min_samples_split" 
+                                   value="{{ default_params.min_samples_split|default(2) }}" min="2" max="20">
+                            <div class="form-text">The minimum number of samples required to split an internal node.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="min_samples_leaf" class="form-label">Minimum Samples per Leaf</label>
+                            <input type="number" class="form-control" id="min_samples_leaf" name="min_samples_leaf" 
+                                   value="{{ default_params.min_samples_leaf|default(1) }}" min="1" max="20">
+                            <div class="form-text">The minimum number of samples required to be at a leaf node.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="criterion" class="form-label">Split Criterion</label>
+                            <select class="form-select" id="criterion" name="criterion">
+                                {% if experiment.problem_type == 'classification' %}
+                                <option value="gini" {% if default_params.criterion == 'gini' %}selected{% endif %}>Gini Impurity</option>
+                                <option value="entropy" {% if default_params.criterion == 'entropy' %}selected{% endif %}>Entropy</option>
+                                {% else %}
+                                <option value="squared_error" {% if default_params.criterion == 'squared_error' %}selected{% endif %}>Squared Error</option>
+                                <option value="absolute_error" {% if default_params.criterion == 'absolute_error' %}selected{% endif %}>Absolute Error</option>
+                                <option value="poisson" {% if default_params.criterion == 'poisson' %}selected{% endif %}>Poisson</option>
+                                {% endif %}
+                            </select>
+                            <div class="form-text">The function to measure the quality of a split.</div>
+                        </div>
+                        
+                        {% elif model_run.algorithm in ['KNN', 'KNeighborsRegressor'] %}
+                        <!-- K-Nearest Neighbors Parameters -->
+                        <div class="mb-4">
+                            <label for="n_neighbors" class="form-label">Number of Neighbors</label>
+                            <input type="number" class="form-control" id="n_neighbors" name="n_neighbors" 
+                                   value="{{ default_params.n_neighbors|default(5) }}" min="1" max="50">
+                            <div class="form-text">Number of neighbors to use for prediction. Lower values allow the model to capture more local patterns.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="weights" class="form-label">Weight Function</label>
+                            <select class="form-select" id="weights" name="weights">
+                                <option value="uniform" {% if default_params.weights == 'uniform' %}selected{% endif %}>Uniform</option>
+                                <option value="distance" {% if default_params.weights == 'distance' %}selected{% endif %}>Distance</option>
+                            </select>
+                            <div class="form-text">Weight function used in prediction. 'uniform' gives equal weight to all neighbors, while 'distance' weights by the inverse of distance.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="algorithm" class="form-label">Algorithm</label>
+                            <select class="form-select" id="algorithm" name="algorithm">
+                                <option value="auto" {% if default_params.algorithm == 'auto' %}selected{% endif %}>Auto</option>
+                                <option value="ball_tree" {% if default_params.algorithm == 'ball_tree' %}selected{% endif %}>Ball Tree</option>
+                                <option value="kd_tree" {% if default_params.algorithm == 'kd_tree' %}selected{% endif %}>KD Tree</option>
+                                <option value="brute" {% if default_params.algorithm == 'brute' %}selected{% endif %}>Brute Force</option>
+                            </select>
+                            <div class="form-text">Algorithm used to compute the nearest neighbors. 'auto' chooses the most appropriate algorithm based on the dataset.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="p" class="form-label">Distance Metric (p)</label>
+                            <select class="form-select" id="p" name="p">
+                                <option value="2" {% if default_params.p == 2 %}selected{% endif %}>Euclidean (p=2)</option>
+                                <option value="1" {% if default_params.p == 1 %}selected{% endif %}>Manhattan (p=1)</option>
+                            </select>
+                            <div class="form-text">Power parameter for the Minkowski metric. p=1 is Manhattan distance, p=2 is Euclidean distance.</div>
+                        </div>
+                        
+                        {% elif model_run.algorithm in ['GradientBoosting', 'GradientBoostingRegressor'] %}
+                        <!-- Gradient Boosting Parameters -->
+                        <div class="mb-4">
+                            <label for="n_estimators" class="form-label">Number of Boosting Stages</label>
+                            <input type="number" class="form-control" id="n_estimators" name="n_estimators" 
+                                   value="{{ default_params.n_estimators|default(100) }}" min="10" max="1000">
+                            <div class="form-text">The number of boosting stages to perform. More stages often improve accuracy but may lead to overfitting.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="learning_rate" class="form-label">Learning Rate</label>
+                            <input type="number" class="form-control" id="learning_rate" name="learning_rate" 
+                                   value="{{ default_params.learning_rate|default(0.1) }}" min="0.001" max="1" step="0.001">
+                            <div class="form-text">Shrinks the contribution of each tree. Lower values require more boosting stages but often yield better results.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="max_depth" class="form-label">Maximum Depth</label>
+                            <input type="number" class="form-control" id="max_depth" name="max_depth" 
+                                   value="{{ default_params.max_depth|default(3) }}" min="1" max="32">
+                            <div class="form-text">Maximum depth of individual regression estimators. Limit to control overfitting.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="subsample" class="form-label">Subsample Ratio</label>
+                            <input type="number" class="form-control" id="subsample" name="subsample" 
+                                   value="{{ default_params.subsample|default(1.0) }}" min="0.1" max="1" step="0.05">
+                            <div class="form-text">Fraction of samples used for fitting. Values less than 1.0 create a stochastic gradient boosting model.</div>
+                        </div>
+                        
+                        {% elif model_run.algorithm in ['MLP', 'FNN'] %}
+                        <!-- Neural Network Parameters (MLP/FNN) -->
+                        <div class="mb-4">
+                            <label class="form-label">Hidden Layer Structure</label>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label for="layer1" class="form-label">Layer 1 (Neurons)</label>
+                                    <input type="number" class="form-control" id="layer1" name="layers" 
+                                           value="{{ default_params.layers[0]|default(100) }}" min="1" max="1000">
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label for="layer2" class="form-label">Layer 2 (Neurons)</label>
+                                    <input type="number" class="form-control" id="layer2" name="layers" 
+                                           value="{{ default_params.layers[1]|default(50) }}" min="1" max="1000">
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6 mb-2">
+                                    <label for="layer3" class="form-label">Layer 3 (Neurons, optional)</label>
+                                    <input type="number" class="form-control" id="layer3" name="layers" 
+                                           value="{{ default_params.layers[2]|default('') }}" min="1" max="1000">
+                                </div>
+                                <div class="col-md-6 mb-2">
+                                    <label for="layer4" class="form-label">Layer 4 (Neurons, optional)</label>
+                                    <input type="number" class="form-control" id="layer4" name="layers" 
+                                           value="{{ default_params.layers[3]|default('') }}" min="1" max="1000">
+                                </div>
+                            </div>
+                            <div class="form-text">Define the architecture of your neural network. Leave optional layers empty if not needed.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="activation" class="form-label">Activation Function</label>
+                            <select class="form-select" id="activation" name="activation">
+                                <option value="relu" {% if default_params.activation == 'relu' %}selected{% endif %}>ReLU</option>
+                                <option value="tanh" {% if default_params.activation == 'tanh' %}selected{% endif %}>Tanh</option>
+                                <option value="sigmoid" {% if default_params.activation == 'sigmoid' %}selected{% endif %}>Sigmoid</option>
+                                <option value="leaky_relu" {% if default_params.activation == 'leaky_relu' %}selected{% endif %}>Leaky ReLU</option>
+                            </select>
+                            <div class="form-text">Activation function for hidden layers. ReLU is often a good default choice.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="dropout" class="form-label">Dropout Rate</label>
+                            <input type="number" class="form-control" id="dropout" name="dropout" 
+                                   value="{{ default_params.dropout|default(0.2) }}" min="0" max="0.9" step="0.05">
+                            <div class="form-text">Fraction of input units to drop during training. Helps prevent overfitting.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="learning_rate" class="form-label">Learning Rate</label>
+                            <input type="number" class="form-control" id="learning_rate" name="learning_rate" 
+                                   value="{{ default_params.learning_rate|default(0.001) }}" min="0.0001" max="0.1" step="0.0001">
+                            <div class="form-text">Step size for optimizer. Lower values generally lead to better convergence but require more epochs.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="epochs" class="form-label">Maximum Epochs</label>
+                            <input type="number" class="form-control" id="epochs" name="epochs" 
+                                   value="{{ default_params.epochs|default(100) }}" min="10" max="1000">
+                            <div class="form-text">Maximum number of complete passes through the training dataset.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="batch_size" class="form-label">Batch Size</label>
+                            <input type="number" class="form-control" id="batch_size" name="batch_size" 
+                                   value="{{ default_params.batch_size|default(32) }}" min="1" max="1024">
+                            <div class="form-text">Number of samples per gradient update. Larger batch sizes require more memory but can be more efficient.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="early_stopping" class="form-label">Early Stopping</label>
+                            <select class="form-select" id="early_stopping" name="early_stopping">
+                                <option value="True" {% if default_params.early_stopping %}selected{% endif %}>Enabled</option>
+                                <option value="False" {% if not default_params.early_stopping %}selected{% endif %}>Disabled</option>
+                            </select>
+                            <div class="form-text">Stop training when validation performance has not improved for a set number of epochs.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="patience" class="form-label">Patience (for Early Stopping)</label>
+                            <input type="number" class="form-control" id="patience" name="patience" 
+                                   value="{{ default_params.patience|default(10) }}" min="1" max="100">
+                            <div class="form-text">Number of epochs with no improvement after which training will be stopped.</div>
+                        </div>
+                        
+                        {% elif model_run.algorithm in ['QSVM', 'QKE'] %}
+                        <!-- Quantum SVM/Kernel Estimation Parameters -->
+                        <div class="mb-4">
+                            <label for="qubits" class="form-label">Number of Qubits</label>
+                            <input type="number" class="form-control" id="qubits" name="qubits" 
+                                   value="{{ default_params.qubits|default(4) }}" min="2" max="16">
+                            <div class="form-text">Number of qubits to use in the quantum circuit. More qubits allow for processing more features but increase computational cost.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="feature_map" class="form-label">Feature Map</label>
+                            <select class="form-select" id="feature_map" name="feature_map">
+                                <option value="ZZFeatureMap" {% if default_params.feature_map == 'ZZFeatureMap' %}selected{% endif %}>ZZ Feature Map</option>
+                                <option value="PauliFeatureMap" {% if default_params.feature_map == 'PauliFeatureMap' %}selected{% endif %}>Pauli Feature Map</option>
+                                <option value="SecondOrderExpansion" {% if default_params.feature_map == 'SecondOrderExpansion' %}selected{% endif %}>Second Order Expansion</option>
+                            </select>
+                            <div class="form-text">Quantum circuit used to map classical data to quantum states. Different maps may be better suited for different problems.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="entanglement" class="form-label">Entanglement Type</label>
+                            <select class="form-select" id="entanglement" name="entanglement">
+                                <option value="full" {% if default_params.entanglement == 'full' %}selected{% endif %}>Full</option>
+                                <option value="linear" {% if default_params.entanglement == 'linear' %}selected{% endif %}>Linear</option>
+                                <option value="circular" {% if default_params.entanglement == 'circular' %}selected{% endif %}>Circular</option>
+                            </select>
+                            <div class="form-text">Pattern of entanglement between qubits. Affects how quantum information is shared during computation.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="shots" class="form-label">Number of Shots</label>
+                            <input type="number" class="form-control" id="shots" name="shots" 
+                                   value="{{ default_params.shots|default(1024) }}" min="1" max="8192">
+                            <div class="form-text">Number of repetitions of each circuit to reduce sampling error. Higher values give more accurate results but increase computation time.</div>
+                        </div>
+                        
+                        {% elif model_run.algorithm in ['QNN', 'QRegression'] %}
+                        <!-- Quantum Neural Network/Regression Parameters -->
+                        <div class="mb-4">
+                            <label for="qubits" class="form-label">Number of Qubits</label>
+                            <input type="number" class="form-control" id="qubits" name="qubits" 
+                                   value="{{ default_params.qubits|default(4) }}" min="2" max="16">
+                            <div class="form-text">Number of qubits to use in the quantum circuit. More qubits allow for processing more features but increase computational cost.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="layers" class="form-label">Circuit Depth (Layers)</label>
+                            <input type="number" class="form-control" id="layers" name="layers" 
+                                   value="{{ default_params.layers|default(2) }}" min="1" max="10">
+                            <div class="form-text">Number of repeating structures in the quantum circuit. Deeper circuits can represent more complex functions but are harder to train.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="ansatz" class="form-label">Ansatz</label>
+                            <select class="form-select" id="ansatz" name="ansatz">
+                                <option value="RealAmplitudes" {% if default_params.ansatz == 'RealAmplitudes' %}selected{% endif %}>Real Amplitudes</option>
+                                <option value="EfficientSU2" {% if default_params.ansatz == 'EfficientSU2' %}selected{% endif %}>Efficient SU(2)</option>
+                                <option value="StronglyEntanglingLayers" {% if default_params.ansatz == 'StronglyEntanglingLayers' %}selected{% endif %}>Strongly Entangling Layers</option>
+                            </select>
+                            <div class="form-text">Parameterized quantum circuit used for training. Different ansatze have different expressivity and trainability properties.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="learning_rate" class="form-label">Learning Rate</label>
+                            <input type="number" class="form-control" id="learning_rate" name="learning_rate" 
+                                   value="{{ default_params.learning_rate|default(0.01) }}" min="0.0001" max="0.1" step="0.0001">
+                            <div class="form-text">Step size for optimizer. Quantum circuits tend to do better with slightly higher learning rates.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="epochs" class="form-label">Maximum Epochs</label>
+                            <input type="number" class="form-control" id="epochs" name="epochs" 
+                                   value="{{ default_params.epochs|default(50) }}" min="10" max="500">
+                            <div class="form-text">Maximum number of complete passes through the training dataset. Quantum models typically need fewer epochs than classical neural networks.</div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label for="shots" class="form-label">Number of Shots</label>
+                            <input type="number" class="form-control" id="shots" name="shots" 
+                                   value="{{ default_params.shots|default(1024) }}" min="1" max="8192">
+                            <div class="form-text">Number of repetitions of each circuit to reduce sampling error. Higher values give more accurate results but increase computation time.</div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="alert alert-light mb-4">
+                            <div class="d-flex">
+                                <i class="fas fa-lightbulb text-warning fa-lg me-3 mt-1"></i>
+                                <div>
+                                    <h6 class="mb-1">Hyperparameter Selection Tips</h6>
+                                    <p class="mb-0">These settings control how your model learns from data. If you're unsure about the best values, the defaults are a good starting point. You can also use automatic hyperparameter tuning for optimal performance.</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check-circle me-2"></i>Save and Train Model
+                            </button>
+                            <a href="{{ url_for('project.tune_hyperparameters', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-outline-primary">
+                                <i class="fas fa-magic me-2"></i>Use Automatic Tuning Instead
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Algorithm Information Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Algorithm Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="feature-icon bg-{{ 'primary' if model_run.model_type == 'classical' else 'warning' if model_run.model_type == 'quantum' else 'info' }}-light text-{{ 'primary' if model_run.model_type == 'classical' else 'warning' if model_run.model_type == 'quantum' else 'info' }} me-3">
+                            <i class="fas fa-{% if model_run.model_type == 'classical' %}cogs{% elif model_run.model_type == 'quantum' %}atom{% else %}brain{% endif %}"></i>
+                        </div>
+                        <div>
+                            <h5 class="mb-1">{{ model_run.algorithm }}</h5>
+                            <p class="text-muted mb-0">{{ model_run.model_type|capitalize }} Model</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="mb-2">Description</h6>
+                        <p class="text-muted small">
+                            {% if 'RandomForest' in model_run.algorithm %}
+                            Random Forest is an ensemble learning method that builds multiple decision trees and merges their predictions. It's robust against overfitting and can handle both classification and regression tasks effectively.
+                            
+                            {% elif 'LogisticRegression' in model_run.algorithm %}
+                            Logistic Regression is a linear model for classification that estimates probabilities using a logistic function. It's simple, interpretable, and works well for linearly separable data.
+                            
+                            {% elif 'LinearRegression' in model_run.algorithm %}
+                            Linear Regression is a simple yet powerful regression model that assumes a linear relationship between inputs and the target variable. It's highly interpretable and serves as a good baseline.
+                            
+                            {% elif 'GradientBoosting' in model_run.algorithm %}
+                            Gradient Boosting builds models sequentially, with each new model correcting errors made by previous ones. It often provides high accuracy but requires careful tuning to prevent overfitting.
+                            
+                            {% elif model_run.algorithm in ['SVC', 'SVR'] %}
+                            Support Vector Machine finds an optimal hyperplane to separate classes (for classification) or fit data (for regression). It's effective in high-dimensional spaces and with complex decision boundaries.
+                            
+                            {% elif 'Tree' in model_run.algorithm %}
+                            Decision Tree creates a model that predicts the target by learning simple decision rules from data features. It's intuitive and easy to visualize but may overfit without proper constraints.
+                            
+                            {% elif 'KNN' in model_run.algorithm or 'Neighbors' in model_run.algorithm %}
+                            K-Nearest Neighbors makes predictions based on the majority class (classification) or average (regression) of the k nearest training examples. It's non-parametric and works well with well-clustered data.
+                            
+                            {% elif 'MLP' in model_run.algorithm %}
+                            Multi-Layer Perceptron is a neural network with multiple layers of nodes. It can learn non-linear patterns and is capable of handling complex relationships in data.
+                            
+                            {% elif model_run.algorithm in ['RNN', 'LSTM', 'GRU'] %}
+                            Recurrent Neural Networks ({{ model_run.algorithm }}) are designed to recognize patterns in sequences. They're particularly powerful for time series, text, and other sequential data.
+                            
+                            {% elif 'QSVM' in model_run.algorithm %}
+                            Quantum Support Vector Machine leverages quantum computing principles to potentially solve classification problems more efficiently than classical methods for certain datasets.
+                            
+                            {% elif 'QNN' in model_run.algorithm %}
+                            Quantum Neural Network combines quantum computing with neural network architectures, potentially providing advantages for specific types of problems and datasets.
+                            
+                            {% else %}
+                            {{ model_run.algorithm }} is a machine learning algorithm with specific hyperparameters that control its learning behavior. Optimizing these parameters can significantly improve model performance.
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h6 class="mb-2">Key Hyperparameters</h6>
+                        <p class="text-muted small">
+                            {% if 'RandomForest' in model_run.algorithm %}
+                            <strong>n_estimators</strong>: Number of trees in the forest.<br>
+                            <strong>max_depth</strong>: Maximum depth of each tree.<br>
+                            <strong>min_samples_split/leaf</strong>: Control tree structure and prevent overfitting.
+                            
+                            {% elif 'LogisticRegression' in model_run.algorithm %}
+                            <strong>C</strong>: Inverse of regularization strength.<br>
+                            <strong>solver</strong>: Algorithm for optimization problem.<br>
+                            <strong>penalty</strong>: Type of regularization.
+                            
+                            {% elif 'LinearRegression' in model_run.algorithm %}
+                            <strong>fit_intercept</strong>: Whether to include a constant term.<br>
+                            <strong>normalize</strong>: Whether to normalize input features.
+                            
+                            {% elif 'GradientBoosting' in model_run.algorithm %}
+                            <strong>n_estimators</strong>: Number of boosting stages.<br>
+                            <strong>learning_rate</strong>: Shrinkage of each tree's contribution.<br>
+                            <strong>max_depth</strong>: Maximum depth of individual estimators.
+                            
+                            {% elif model_run.algorithm in ['SVC', 'SVR'] %}
+                            <strong>C</strong>: Regularization parameter.<br>
+                            <strong>kernel</strong>: Kernel type for the algorithm.<br>
+                            <strong>gamma</strong>: Kernel coefficient.
+                            
+                            {% elif 'Tree' in model_run.algorithm %}
+                            <strong>max_depth</strong>: Maximum depth of the tree.<br>
+                            <strong>min_samples_split/leaf</strong>: Minimum samples required to split/be at a leaf node.<br>
+                            <strong>criterion</strong>: Function to measure split quality.
+                            
+                            {% elif 'KNN' in model_run.algorithm or 'Neighbors' in model_run.algorithm %}
+                            <strong>n_neighbors</strong>: Number of neighbors to use.<br>
+                            <strong>weights</strong>: Weight function.<br>
+                            <strong>algorithm</strong>: Algorithm used to compute nearest neighbors.
+                            
+                            {% elif model_run.algorithm in ['MLP', 'FNN'] %}
+                            <strong>hidden_layer_sizes</strong>: Size of hidden layers.<br>
+                            <strong>activation</strong>: Activation function.<br>
+                            <strong>learning_rate</strong>: Step size for optimizer.
+                            
+                            {% elif model_run.algorithm in ['RNN', 'LSTM', 'GRU'] %}
+                            <strong>units</strong>: Number of cells/neurons per layer.<br>
+                            <strong>dropout</strong>: Rate of dropped connections.<br>
+                            <strong>learning_rate</strong>: Step size for optimizer.
+                            
+                            {% elif 'QSVM' in model_run.algorithm or 'QKE' in model_run.algorithm %}
+                            <strong>qubits</strong>: Number of quantum bits.<br>
+                            <strong>feature_map</strong>: Quantum circuit for data encoding.<br>
+                            <strong>shots</strong>: Number of quantum circuit repetitions.
+                            
+                            {% elif 'QNN' in model_run.algorithm %}
+                            <strong>qubits</strong>: Number of quantum bits.<br>
+                            <strong>layers</strong>: Circuit depth.<br>
+                            <strong>ansatz</strong>: Parameterized quantum circuit design.
+                            
+                            {% else %}
+                            The key hyperparameters for {{ model_run.algorithm }} control various aspects of model training and complexity. Adjusting these can significantly impact model performance.
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <div class="alert alert-primary">
+                        <div class="d-flex">
+                            <i class="fas fa-info-circle me-3 mt-1"></i>
+                            <div>
+                                <h6 class="mb-1">Configuration Tip</h6>
+                                <p class="mb-0 small">If you're unsure about parameter values, consider using automatic hyperparameter tuning, which will systematically search for optimal settings.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Project Information Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Project Information</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Project:</div>
+                                <div class="col-7 fw-medium">{{ experiment.name }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Problem Type:</div>
+                                <div class="col-7">{{ experiment.problem_type|capitalize }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Target Column:</div>
+                                <div class="col-7">{{ experiment.target_column }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Features:</div>
+                                <div class="col-7">{{ json.loads(experiment.feature_columns)|length }} selected</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Dataset Size:</div>
+                                <div class="col-7">
+                                    {% if experiment.dataset_info %}
+                                    {{ experiment.dataset_info.num_rows }} rows
+                                    {% else %}
+                                    N/A
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Pro Features Card -->
+            {% if not current_user.is_pro %}
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0"><i class="fas fa-crown text-warning me-2"></i>Pro Features</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Upgrade to Pro to unlock:</p>
+                    <ul class="mb-3">
+                        <li class="mb-2">Advanced model hyperparameter tuning</li>
+                        <li class="mb-2">Neural network architecture search</li>
+                        <li class="mb-2">Quantum computing models</li>
+                        <li class="mb-2">Automated feature engineering</li>
+                        <li class="mb-2">Unlimited training time</li>
+                    </ul>
+                    <div class="d-grid">
+                        <a href="{{ url_for('project.upgrade_to_pro', experiment_id=experiment.id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-crown me-2"></i>Upgrade to Pro
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Disable empty optional layers when submitting
+    document.querySelector('form').addEventListener('submit', function() {
+        const optionalLayers = document.querySelectorAll('input[name="layers"]:not(:first-child):not(:nth-child(2))');
+        optionalLayers.forEach(function(layer) {
+            if (layer.value === '') {
+                layer.disabled = true;
+            }
+        });
+    });
+    
+    // Dynamically update recommendations based on parameter changes
+    {% if model_run.algorithm in ['RandomForest', 'GradientBoosting'] %}
+    document.getElementById('n_estimators').addEventListener('change', function() {
+        if (parseInt(this.value) < 50) {
+            showHint('n_estimators', 'Using fewer trees may result in lower performance. We recommend at least 50 trees for good results.');
+        } else if (parseInt(this.value) > 500) {
+            showHint('n_estimators', 'Using many trees will increase training time but may not significantly improve performance beyond a certain point.');
+        } else {
+            hideHint('n_estimators');
+        }
+    });
+    {% endif %}
+    
+    {% if 'max_depth' in default_params %}
+    document.getElementById('max_depth').addEventListener('change', function() {
+        if (parseInt(this.value) > 20) {
+            showHint('max_depth', 'Deep trees may lead to overfitting. Consider using a smaller value unless you have a large dataset.');
+        } else {
+            hideHint('max_depth');
+        }
+    });
+    {% endif %}
+    
+    // Show/hide parameter hints
+    function showHint(paramId, message) {
+        let hintId = paramId + '_hint';
+        let hint = document.getElementById(hintId);
+        
+        if (!hint) {
+            hint = document.createElement('div');
+            hint.id = hintId;
+            hint.className = 'alert alert-warning mt-2 small';
+            hint.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>${message}`;
+            document.getElementById(paramId).parentNode.appendChild(hint);
+        } else {
+            hint.innerHTML = `<i class="fas fa-exclamation-triangle me-2"></i>${message}`;
+            hint.style.display = 'block';
+        }
+    }
+    
+    function hideHint(paramId) {
+        const hintId = paramId + '_hint';
+        const hint = document.getElementById(hintId);
+        if (hint) {
+            hint.style.display = 'none';
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,1163 @@
+{% extends "base.html" %}
+
+{% block title %}Model Results - Bhrigu AI{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('project.view', experiment_id=experiment.id) }}">{{ experiment.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ model_run.algorithm }} Results</li>
+                </ol>
+            </nav>
+            <h2 class="mb-0">{{ model_run.algorithm }} Results</h2>
+            <p class="text-muted">{{ experiment.problem_type|capitalize }} model performance</p>
+        </div>
+        <div class="col-md-4 text-md-end">
+            <div class="dropdown">
+                <button class="btn btn-primary dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-download me-2"></i>Export
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="exportDropdown">
+                    <li><a class="dropdown-item" href="{{ url_for('project.download_model', experiment_id=experiment.id, model_run_id=model_run.id) }}">
+                        <i class="fas fa-file-code me-2"></i>Download Model 
+                    </a></li>
+                    <li><a class="dropdown-item" href="{{ url_for('project.download_model_report', experiment_id=experiment.id, model_run_id=model_run.id) }}">
+                        <i class="fas fa-file-pdf me-2"></i>Download Report (.pdf)
+                    </a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#exportCodeModal">
+                        <i class="fas fa-code me-2"></i>Sample Code
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Performance Metrics -->
+            {% set metrics = json.loads(model_run.metrics) %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Performance Metrics</h5>
+                </div>
+                <div class="card-body">
+                    {% if experiment.problem_type == 'classification' %}
+                    <div class="row mb-4">
+                        <div class="col-md-3 col-6 mb-3 mb-md-0">
+                            <div class="text-center">
+                                <div class="feature-icon bg-primary-light text-primary mx-auto mb-2">
+                                    <i class="fas fa-bullseye"></i>
+                                </div>
+                                <h6 class="mb-1">Accuracy</h6>
+                                {% if 'accuracy' in metrics %}
+                                    <h4 class="mb-0 text-primary">{{ (metrics.accuracy * 100)|round(2) }}%</h4>
+                                    {% elif experiment.problem_type == 'classification' %}
+                                    <h4 class="mb-0 text-primary">0.00%</h4>
+                                    {% else %}
+                                    <h4 class="mb-0 text-primary">{{ metrics.r2|default(0)|round(2) }}</h4>
+                                    {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3 mb-md-0">
+                            <div class="text-center">
+                                <div class="feature-icon bg-success-light text-success mx-auto mb-2">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                               <!-- For precision -->
+<h4 class="mb-0 text-success">
+    {% if 'precision' in metrics %}
+        {{ (metrics.precision * 100)|round(2) }}%
+    {% else %}
+        0.00%
+    {% endif %}
+</h4>
+
+<!-- For recall -->
+
+
+
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="text-center">
+                                <div class="feature-icon bg-info-light text-info mx-auto mb-2">
+                                    <i class="fas fa-percentage"></i>
+                                </div>
+                                <h4 class="mb-0 text-info">
+                                    {% if 'recall' in metrics %}
+                                        {{ (metrics.recall * 100)|round(2) }}%
+                                    {% else %}
+                                        0.00%
+                                    {% endif %}
+                                </h4></div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="text-center">
+                                <div class="feature-icon bg-warning-light text-warning mx-auto mb-2">
+                                    <i class="fas fa-balance-scale"></i>
+                                </div>
+                                <!-- For F1 Score -->
+<h4 class="mb-0 text-warning">
+    {% if 'f1' in metrics %}
+        {{ (metrics.f1 * 100)|round(2) }}%
+    {% else %}
+        0.00%
+    {% endif %}
+</h4>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if 'roc_auc' in metrics %}
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <div class="card bg-light h-100">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0">ROC AUC Score</h6>
+                                        <span class="badge bg-primary">{{ metrics.roc_auc|round(3) }}</span>
+                                    </div>
+                                    <p class="small text-muted mb-0">Area under the Receiver Operating Characteristic curve. Higher values indicate better discrimination ability.</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% if model_run.classification_report %}
+                        <div class="col-md-6">
+                            <div class="card bg-light h-100">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0">Class Performance</h6>
+                                        <a href="#classificationReportSection" class="small">View Details</a>
+                                    </div>
+                                    <p class="small text-muted mb-0">Detailed metrics for individual classes, including support counts and per-class metrics.</p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    {% else %}
+                    <!-- Regression Metrics -->
+                    <div class="row mb-4">
+                        <div class="col-md-3 col-6 mb-3 mb-md-0">
+                            <div class="text-center">
+                                <div class="feature-icon bg-primary-light text-primary mx-auto mb-2">
+                                    <i class="fas fa-chart-line"></i>
+                                </div>
+                                <h6 class="mb-1">R² Score</h6>
+                                <h4 class="mb-0 text-primary">{{ metrics.r2|round(3) }}</h4>
+                                <p class="text-muted small mb-0 metric-explanation">Explained variance (higher is better)</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6 mb-3 mb-md-0">
+                            <div class="text-center">
+                                <div class="feature-icon bg-info-light text-info mx-auto mb-2">
+                                    <i class="fas fa-ruler"></i>
+                                </div>
+                                <h6 class="mb-1">MSE</h6>
+                                <h4 class="mb-0 text-info">{{ metrics.mse|round(3) }}</h4>
+                                <p class="text-muted small mb-0 metric-explanation">Mean Squared Error</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="text-center">
+                                <div class="feature-icon bg-success-light text-success mx-auto mb-2">
+                                    <i class="fas fa-square-root-alt"></i>
+                                </div>
+                                <h6 class="mb-1">RMSE</h6>
+                                <h4 class="mb-0 text-success">{{ metrics.rmse|round(3) }}</h4>
+                                <p class="text-muted small mb-0 metric-explanation">Root Mean Squared Error</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3 col-6">
+                            <div class="text-center">
+                                <div class="feature-icon bg-warning-light text-warning mx-auto mb-2">
+                                    <i class="fas fa-arrows-alt-v"></i>
+                                </div>
+                                <h6 class="mb-1">MAE</h6>
+                                <h4 class="mb-0 text-warning">{{ metrics.mae|round(3) }}</h4>
+                                <p class="text-muted small mb-0 metric-explanation">Mean Absolute Error</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <div class="card bg-light h-100">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0">Explained Variance</h6>
+                                        <span class="badge bg-primary">{{ metrics.explained_variance|round(3) }}</span>
+                                    </div>
+                                    <p class="small text-muted mb-0">Measures how much of the variance in the target variable is captured by the model.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card bg-light h-100">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <h6 class="mb-0">Residual Analysis</h6>
+                                        <a href="#residualPlotSection" class="small">View Plot</a>
+                                    </div>
+                                    <p class="small text-muted mb-0">Analysis of prediction errors to identify patterns or biases in the model.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Feature Importance -->
+            {% if feature_importances %}
+            <div class="card shadow-sm mb-4" id="featureImportanceSection">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Feature Importance</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="text-muted">The relative importance of each feature in the model's predictions.</p>
+                    </div>
+                    <div style="height: 300px;">
+                        <canvas id="featureImportanceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Confusion Matrix (for classification) -->
+            {% if confusion_matrix and experiment.problem_type == 'classification' %}
+            <div class="card shadow-sm mb-4" id="confusionMatrixSection">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Confusion Matrix</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="text-muted">Visualizes the performance of the classification model by showing predicted vs. actual classes.</p>
+                    </div>
+                    <div class="confusion-matrix-container" style="height: 350px;">
+                        <canvas id="confusionMatrixChart"></canvas>
+                    </div>
+                    <div class="mt-3">
+                        <h6 class="mb-2">Interpretation:</h6>
+                        <ul class="text-muted small">
+                            <li>True Positives (Top-left): Correctly predicted positive cases</li>
+                            <li>False Negatives (Top-right): Positive cases incorrectly predicted as negative</li>
+                            <li>False Positives (Bottom-left): Negative cases incorrectly predicted as positive</li>
+                            <li>True Negatives (Bottom-right): Correctly predicted negative cases</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Residual Plot (for regression) -->
+            {% if experiment.problem_type == 'regression' %}
+            <div class="card shadow-sm mb-4" id="residualPlotSection">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Residual Analysis</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="text-muted">Residuals (prediction errors) should be randomly distributed with no clear patterns for a well-performing model.</p>
+                    </div>
+                    <div style="height: 350px;">
+                        <canvas id="residualPlotChart"></canvas>
+                    </div>
+                    <div class="mt-3">
+                        <h6 class="mb-2">Key Observations:</h6>
+                        <ul class="text-muted small">
+                            <li>Mean of residuals: {{ metrics.mean_residual|round(3) if 'mean_residual' in metrics else 'N/A' }}</li>
+                            <li>Residual standard deviation: {{ metrics.residual_std|round(3) if 'residual_std' in metrics else 'N/A' }}</li>
+                            <li>Patterns in residuals can indicate model weaknesses or missing variables</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Classification Report (for classification) -->
+{% if model_run.classification_report and experiment.problem_type == 'classification' %}
+<div class="card shadow-sm mb-4" id="classificationReportSection">
+    <div class="card-header   py-3">
+        <h5 class="mb-0">Classification Report</h5>
+    </div>
+    <div class="card-body">
+        {% if classification_report_data is mapping %}
+            <!-- If the data is a dictionary (parsed JSON) -->
+            <div class="table-responsive">
+                <table class="table table-striped table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Class</th>
+                            <th>Precision</th>
+                            <th>Recall</th>
+                            <th>F1-Score</th>
+                            <th>Support</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for class_name, values in classification_report_data.items() %}
+                        {% if class_name not in ['accuracy', 'macro avg', 'weighted avg'] %}
+                        <tr>
+                            <td>{{ class_name }}</td>
+                            <td>{{ (values.precision * 100)|round(2) }}%</td>
+                            <td>{{ (values.recall * 100)|round(2) }}%</td>
+                            <td>{{ (values.f1_score * 100)|round(2) }}%</td>
+                            <td>{{ values.support }}</td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        {% if 'macro avg' in classification_report_data %}
+                        {% set macro_avg = classification_report_data['macro avg'] %}
+                        <tr>
+                            <th>Macro Avg</th>
+                            <td>{{ (macro_avg.precision * 100)|round(2) }}%</td>
+                            <td>{{ (macro_avg.recall * 100)|round(2) }}%</td>
+                            <td>{{ (macro_avg.f1_score * 100)|round(2) }}%</td>
+                            <td>{{ macro_avg.support }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if 'weighted avg' in classification_report_data %}
+                        {% set weighted_avg = classification_report_data['weighted avg'] %}
+                        <tr>
+                            <th>Weighted Avg</th>
+                            <td>{{ (weighted_avg.precision * 100)|round(2) }}%</td>
+                            <td>{{ (weighted_avg.recall * 100)|round(2) }}%</td>
+                            <td>{{ (weighted_avg.f1_score * 100)|round(2) }}%</td>
+                            <td>{{ weighted_avg.support }}</td>
+                        </tr>
+                        {% endif %}
+                    </tfoot>
+                </table>
+            </div>
+        {% else %}
+            <!-- If it's a string or other format, display as pre-formatted text -->
+            <pre>{{ classification_report_data }}</pre>
+        {% endif %}
+        <div class="mt-3">
+            <p class="text-muted small">
+                <strong>Note:</strong> Precision is the ratio of true positives to all predicted positives. Recall is the ratio of true positives to all actual positives. F1-Score is the harmonic mean of precision and recall.
+            </p>
+        </div>
+    </div>
+</div>
+{% endif %}
+            
+            <!-- Hyperparameter Configuration -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Model Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="w-50">Parameter</th>
+                                    <th>Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Algorithm</td>
+                                    <td>{{ model_run.algorithm }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Model Type</td>
+                                    <td>{{ model_run.model_type|capitalize }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Problem Type</td>
+                                    <td>{{ experiment.problem_type|capitalize }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Training Time</td>
+                                    <td>
+                                        {% if model_run.started_at and model_run.completed_at %}
+                                        {{ ((model_run.completed_at - model_run.started_at).total_seconds()/60)|round(1) }} minutes
+                                        {% else %}
+                                        N/A
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Hyperparameters Tuning</td>
+                                    <td>{{ 'Yes' if model_run.hyperparameters_tuning else 'No' }}</td>
+                                </tr>
+                                
+                                {% if model_run.hyperparameters %}
+                                {% set hyperparams = json.loads(model_run.hyperparameters) %}
+                                {% for param, value in hyperparams.items() %}
+                                <tr>
+                                    <td class="ps-4 text-muted">{{ param }}</td>
+                                    <td>{{ value|string }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Quantum Circuit Visualization (for quantum models) -->
+            {% if model_run.model_type == 'quantum' and model_run.quantum_circuit %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Quantum Circuit Visualization</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="text-muted">Visual representation of the quantum circuit used for this model.</p>
+                    </div>
+                    <div class="text-center">
+                        <img src="data:image/png;base64,{{ model_run.quantum_circuit }}" class="img-fluid" alt="Quantum Circuit">
+                    </div>
+                    <div class="mt-3">
+                        <h6 class="mb-2">Circuit Details:</h6>
+                        {% set circuit_info = json.loads(model_run.quantum_circuit_info) if model_run.quantum_circuit_info else {} %}
+                        <ul class="text-muted small">
+                            <li>Qubits: {{ circuit_info.num_qubits if circuit_info.num_qubits else hyperparams.qubits if 'qubits' in hyperparams else 'N/A' }}</li>
+                            <li>Circuit Depth: {{ circuit_info.depth if circuit_info.depth else 'N/A' }}</li>
+                            <li>Gate Count: {{ circuit_info.gate_count if circuit_info.gate_count else 'N/A' }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Neural Network Architecture (for neural models) -->
+            {% if model_run.model_type == 'neural' and model_run.neural_architecture %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Neural Network Architecture</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <p class="text-muted">Structure of the neural network layers and parameters.</p>
+                    </div>
+                    <div class="neural-architecture-container p-3 bg-light rounded">
+                        <pre class="mb-0">{{ model_run.neural_architecture }}</pre>
+                    </div>
+                    <div class="mt-3">
+                        <h6 class="mb-2">Architecture Summary:</h6>
+                        {% set nn_info = json.loads(model_run.neural_architecture_info) if model_run.neural_architecture_info else {} %}
+                        <ul class="text-muted small">
+                            <li>Total Parameters: {{ nn_info.total_params if nn_info.total_params else 'N/A' }}</li>
+                            <li>Trainable Parameters: {{ nn_info.trainable_params if nn_info.trainable_params else 'N/A' }}</li>
+                            <li>Input Shape: {{ nn_info.input_shape if nn_info.input_shape else 'N/A' }}</li>
+                            <li>Output Shape: {{ nn_info.output_shape if nn_info.output_shape else 'N/A' }}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-4">
+            <!-- Actions Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{{ url_for('project.download_model', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-download me-2"></i>Download Model (.pkl)
+                        </a>
+                        <a href="{{ url_for('project.download_model_report', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-outline-primary">
+                            <i class="fas fa-file-pdf me-2"></i>Download Report
+                        </a>
+                        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#exportCodeModal">
+                            <i class="fas fa-code me-2"></i>Sample Usage Code
+                        </button>
+                        
+                        {% if is_deployed %}
+                        <a href="{{ url_for('project.api_details', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-success">
+                            <i class="fas fa-server me-2"></i>View API Details
+                        </a>
+                        {% elif has_api_hosting %}
+                        <a href="{{ url_for('project.deploy_model_api', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-primary">
+                            <i class="fas fa-server me-2"></i>Deploy as API
+                        </a>
+                        {% else %}
+                        <a href="{{ url_for('payment.pay_for_api_hosting', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-crown me-2"></i>Upgrade for API Hosting
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Experiment Info Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Experiment Info</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Project:</div>
+                                <div class="col-7 fw-medium">{{ experiment.name }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Model:</div>
+                                <div class="col-7 fw-medium">
+                                    {{ model_run.algorithm }}
+                                    <span class="badge bg-light text-dark ms-1">{{ model_run.model_type|capitalize }}</span>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Problem Type:</div>
+                                <div class="col-7">{{ experiment.problem_type|capitalize }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Target:</div>
+                                <div class="col-7">{{ experiment.target_column }}</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Features:</div>
+                                <div class="col-7">{{ json.loads(experiment.feature_columns)|length }} selected</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Dataset Size:</div>
+                                <div class="col-7">{{ dataset_info.num_rows if dataset_info else 'N/A' }} rows</div>
+                            </div>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="row">
+                                <div class="col-5 text-muted">Training Date:</div>
+                                <div class="col-7">{{ model_run.completed_at.strftime('%b %d, %Y') if model_run.completed_at else 'N/A' }}</div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Model Comparison Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Model Comparison</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">See how this model compares to others trained for this project:</p>
+                    
+                    {% set other_models = model_runs|selectattr('status', 'eq', 'completed')|list %}
+                    
+                    {% if other_models|length > 1 %}
+                    <div style="height: 250px;">
+                        <canvas id="modelComparisonChart"></canvas>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <a href="{{ url_for('project.trials_summary', experiment_id=experiment.id) }}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-chart-bar me-1"></i>View All Models
+                        </a>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-light text-center py-4">
+                        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                        <h6>No other models trained yet</h6>
+                        <p class="text-muted mb-0 small">Train additional models to enable comparison</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Next Steps Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0">Next Steps</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <div class="d-flex">
+                            <div class="feature-icon-small bg-primary-light text-primary me-3 mt-1">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Try More Models</h6>
+                                <p class="text-muted small mb-1">Train additional models to find the best performer</p>
+                                <a href="{{ url_for('project.model_recommendations', experiment_id=experiment.id) }}" class="btn btn-sm btn-outline-primary mt-1">
+                                    <i class="fas fa-plus-circle me-1"></i>Add Models
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex">
+                            <div class="feature-icon-small bg-success-light text-success me-3 mt-1">
+                                <i class="fas fa-sliders-h"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Tune Hyperparameters</h6>
+                                <p class="text-muted small mb-1">Optimize model parameters for better performance</p>
+                                <a href="{{ url_for('project.tune_hyperparameters', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-sm btn-outline-primary mt-1">
+                                    <i class="fas fa-cogs me-1"></i>Optimize
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <div class="d-flex">
+                            <div class="feature-icon-small bg-info-light text-info me-3 mt-1">
+                                <i class="fas fa-server"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Deploy Model</h6>
+                                <p class="text-muted small mb-1">Make predictions via a REST API</p>
+                                {% if is_deployed %}
+                                <a href="{{ url_for('project.api_details', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-sm btn-outline-primary mt-1">
+                                    <i class="fas fa-link me-1"></i>View API
+                                </a>
+                                {% elif has_api_hosting %}
+                                <a href="{{ url_for('project.deploy_model_api', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-sm btn-outline-primary mt-1">
+                                    <i class="fas fa-cloud-upload-alt me-1"></i>Deploy
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('payment.pay_for_api_hosting', experiment_id=experiment.id, model_run_id=model_run.id) }}" class="btn btn-sm btn-outline-secondary mt-1">
+                                    <i class="fas fa-crown me-1"></i>Upgrade
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Interpretation Guide -->
+            <div class="card shadow-sm">
+                <div class="card-header   py-3">
+                    <h5 class="mb-0"><i class="fas fa-lightbulb text-warning me-2"></i>Interpretation Guide</h5>
+                </div>
+                <div class="card-body">
+                    {% if experiment.problem_type == 'classification' %}
+                    <div class="mb-3">
+                        <h6 class="mb-2">Understanding Classification Metrics</h6>
+                        <p class="text-muted small mb-0">
+                            <strong>Accuracy</strong> measures the percentage of correct predictions, but can be misleading with imbalanced data. <strong>Precision</strong> shows how many predicted positives were actually positive. <strong>Recall</strong> shows how many actual positives were found. <strong>F1 score</strong> balances precision and recall.
+                        </p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="mb-2">Reading the Confusion Matrix</h6>
+                        <p class="text-muted small mb-0">
+                            The confusion matrix shows predictions vs. actual values. The diagonal represents correct predictions. Off-diagonal cells show errors. Darker colors indicate higher counts.
+                        </p>
+                    </div>
+                    <div>
+                        <h6 class="mb-2">ROC AUC Score</h6>
+                        <p class="text-muted small mb-0">
+                            The Area Under the ROC Curve measures the model's ability to discriminate between classes. Values closer to 1.0 are better, with 0.5 indicating random guessing.
+                        </p>
+                    </div>
+                    {% else %}
+                    <div class="mb-3">
+                        <h6 class="mb-2">Understanding Regression Metrics</h6>
+                        <p class="text-muted small mb-0">
+                            <strong>R² Score</strong> (coefficient of determination) measures how well the model explains the variance in the data. Values closer to 1.0 are better, with 0 indicating the model is no better than predicting the mean.
+                        </p>
+                    </div>
+                    <div class="mb-3">
+                        <h6 class="mb-2">Error Metrics</h6>
+                        <p class="text-muted small mb-0">
+                            <strong>MSE</strong> (Mean Squared Error) penalizes larger errors more. <strong>RMSE</strong> (Root Mean Squared Error) is in the same units as the target variable. <strong>MAE</strong> (Mean Absolute Error) is less sensitive to outliers.
+                        </p>
+                    </div>
+                    <div>
+                        <h6 class="mb-2">Residual Plot</h6>
+                        <p class="text-muted small mb-0">
+                            Residuals (prediction errors) should be randomly distributed around zero with no clear patterns. Patterns may indicate model weaknesses or missing variables.
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Code Modal -->
+<div class="modal fade" id="exportCodeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Sample Code</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs" id="codeTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="python-tab" data-bs-toggle="tab" data-bs-target="#python" type="button" role="tab" aria-controls="python" aria-selected="true">Python</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="r-tab" data-bs-toggle="tab" data-bs-target="#r" type="button" role="tab" aria-controls="r" aria-selected="false">R</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="java-tab" data-bs-toggle="tab" data-bs-target="#java" type="button" role="tab" aria-controls="java" aria-selected="false">Java</button>
+                    </li>
+                </ul>
+                <div class="tab-content mt-3" id="codeTabContent">
+                    <div class="tab-pane fade show active" id="python" role="tabpanel" aria-labelledby="python-tab">
+                        <pre class="bg-light p-3 rounded"><code>import pickle
+import pandas as pd
+import numpy as np
+
+# Load the model
+with open('{{ model_run.algorithm }}_model.pkl', 'rb') as f:
+    model = pickle.load(f)
+
+# Load your data (replace with your data loading code)
+data = pd.read_csv('your_data.csv')
+
+# Prepare the features (same as used during training)
+features = ['{{ json.loads(experiment.feature_columns)|join("', '") }}']
+X = data[features]
+
+# Make predictions
+predictions = model.predict(X)
+
+# For classification models, get probabilities (if applicable)
+{% if experiment.problem_type == 'classification' %}
+probabilities = model.predict_proba(X)
+{% endif %}
+
+# Print results
+print(predictions)
+</code></pre>
+                        <div class="mt-2 text-end">
+                            <button class="btn btn-sm btn-outline-primary copy-code" data-code-tab="python">
+                                <i class="fas fa-copy me-1"></i>Copy Code
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="r" role="tabpanel" aria-labelledby="r-tab">
+                        <pre class="bg-light p-3 rounded"><code># Load required libraries
+library(caret)
+
+# Load the model (assuming you've exported it in RDS format)
+model <- readRDS("{{ model_run.algorithm }}_model.rds")
+
+# Load your data (replace with your data loading code)
+data <- read.csv("your_data.csv")
+
+# Prepare the features (same as used during training)
+features <- c("{{ json.loads(experiment.feature_columns)|join('", "') }}")
+X <- data[, features]
+
+# Make predictions
+predictions <- predict(model, newdata = X)
+
+# For classification models, get probabilities (if applicable)
+{% if experiment.problem_type == 'classification' %}
+probabilities <- predict(model, newdata = X, type = "prob")
+{% endif %}
+
+# View results
+print(predictions)
+</code></pre>
+                        <div class="mt-2 text-end">
+                            <button class="btn btn-sm btn-outline-primary copy-code" data-code-tab="r">
+                                <i class="fas fa-copy me-1"></i>Copy Code
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="java" role="tabpanel" aria-labelledby="java-tab">
+                        <pre class="bg-light p-3 rounded"><code>import java.io.*;
+import weka.core.Instances;
+import weka.core.converters.ConverterUtils.DataSource;
+import weka.classifiers.Classifier;
+
+public class ModelInference {
+    public static void main(String[] args) {
+        try {
+            // Load the model
+            Classifier model = (Classifier) weka.core.SerializationHelper.read("{{ model_run.algorithm }}_model.model");
+            
+            // Load your data (replace with your data loading code)
+            DataSource source = new DataSource("your_data.arff");
+            Instances data = source.getDataSet();
+            
+            // Set class index for classification problems
+            {% if experiment.problem_type == 'classification' %}
+            data.setClassIndex(data.numAttributes() - 1);
+            {% endif %}
+            
+            // Make predictions for each instance
+            for (int i = 0; i < data.numInstances(); i++) {
+                double prediction = model.classifyInstance(data.instance(i));
+                System.out.println("Prediction for instance " + i + ": " + prediction);
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+                        <div class="mt-2 text-end">
+                            <button class="btn btn-sm btn-outline-primary copy-code" data-code-tab="java">
+                                <i class="fas fa-copy me-1"></i>Copy Code
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Feature Importance Chart
+    {% if feature_importances %}
+    const featureImportanceCtx = document.getElementById('featureImportanceChart').getContext('2d');
+    
+    // Sort features by importance
+    const featureData = {{ feature_importances|tojson }};
+    const sortedFeatures = Object.keys(featureData).map(feature => ({
+        name: feature,
+        importance: featureData[feature]
+    })).sort((a, b) => b.importance - a.importance);
+    
+    // Get top features (limit to 10 for readability)
+    const topFeatures = sortedFeatures.slice(0, 10);
+    
+    const featureImportanceChart = new Chart(featureImportanceCtx, {
+        type: 'bar',
+        data: {
+            labels: topFeatures.map(f => f.name),
+            datasets: [{
+                label: 'Feature Importance',
+                data: topFeatures.map(f => f.importance),
+                backgroundColor: '#4361ee',
+                borderColor: '#3a56d4',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Importance: ${context.raw.toFixed(4)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Importance'
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+    
+    // Confusion Matrix Chart (for classification)
+    {% if confusion_matrix and experiment.problem_type == 'classification' %}
+    const confusionMatrixCtx = document.getElementById('confusionMatrixChart').getContext('2d');
+    
+    const confusionMatrixData = {{ confusion_matrix|tojson }};
+    const classLabels = Object.keys(confusionMatrixData);
+    
+    // Create a 2D array for the confusion matrix
+    const matrix = [];
+    for (const actualClass of classLabels) {
+        const row = [];
+        for (const predictedClass of classLabels) {
+            row.push(confusionMatrixData[actualClass][predictedClass]);
+        }
+        matrix.push(row);
+    }
+    
+    // Find the maximum value in the matrix for color scaling
+    const maxValue = Math.max(...matrix.flat());
+    
+    // Generate color values (from light to dark blue)
+    function getColor(value, max) {
+        const intensity = Math.max(0, 255 - Math.round((value / max) * 200));
+        return `rgb(69, 97, 238, ${value / max})`;
+    }
+    
+    const confusionMatrixChart = new Chart(confusionMatrixCtx, {
+        type: 'matrix',
+        data: {
+            datasets: [{
+                data: matrix.flatMap((row, i) => 
+                    row.map((value, j) => ({
+                        x: j,
+                        y: i,
+                        v: value
+                    }))
+                ),
+                backgroundColor: (context) => {
+                    if (!context.raw) return;
+                    return getColor(context.raw.v, maxValue);
+                },
+                borderColor: '#ffffff',
+                borderWidth: 1,
+                width: ({ chart }) => (chart.chartArea || {}).width / classLabels.length - 1,
+                height: ({ chart }) => (chart.chartArea || {}).height / classLabels.length - 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        title: () => '',
+                        label: (context) => {
+                            const data = context.raw;
+                            return [
+                                `Actual: ${classLabels[data.y]}`,
+                                `Predicted: ${classLabels[data.x]}`,
+                                `Count: ${data.v}`
+                            ];
+                        }
+                    }
+                },
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                x: {
+                    type: 'category',
+                    labels: classLabels,
+                    title: {
+                        display: true,
+                        text: 'Predicted Class'
+                    }
+                },
+                y: {
+                    type: 'category',
+                    labels: classLabels,
+                    title: {
+                        display: true,
+                        text: 'Actual Class'
+                    },
+                    offset: true,
+                    reverse: true
+                }
+            }
+        }
+    });
+    {% endif %}
+    
+    // Residual Plot (for regression)
+    {% if experiment.problem_type == 'regression' %}
+    const residualPlotCtx = document.getElementById('residualPlotChart').getContext('2d');
+    
+    // Simulated residual data based on metrics (in a real app, this would be loaded from the server)
+    const residualData = [];
+    
+    {% if metrics.residuals %}
+    // Use actual residuals if available
+    const residuals = {{ metrics.residuals|tojson }};
+    const predictions = {{ metrics.predictions|tojson }};
+    
+    for (let i = 0; i < residuals.length; i++) {
+        residualData.push({
+            x: predictions[i],
+            y: residuals[i]
+        });
+    }
+    {% else %}
+    // Generate simulated residuals based on RMSE and mean
+    const rmse = {{ metrics.rmse }};
+    const mean = {{ metrics.mean_residual|default(0) }};
+    const numPoints = 100;
+    
+    // Generate random predictions between 0 and 100
+    for (let i = 0; i < numPoints; i++) {
+        const prediction = Math.random() * 100;
+        const residual = mean + (Math.random() * 2 - 1) * rmse;
+        residualData.push({
+            x: prediction,
+            y: residual
+        });
+    }
+    {% endif %}
+    
+    const residualPlotChart = new Chart(residualPlotCtx, {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Residuals',
+                data: residualData,
+                backgroundColor: '#4361ee',
+                pointRadius: 3,
+                pointHoverRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: (context) => {
+                            return [
+                                `Predicted: ${context.raw.x.toFixed(2)}`,
+                                `Residual: ${context.raw.y.toFixed(2)}`
+                            ];
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Predicted Values'
+                    }
+                },
+                y: {
+                    title: {
+                        display: true,
+                        text: 'Residuals'
+                    },
+                    beginAtZero: false
+                }
+            }
+        }
+    });
+    {% endif %}
+    
+    // Model Comparison Chart
+    {% if model_runs|selectattr('status', 'eq', 'completed')|list|length > 1 %}
+    const modelComparisonCtx = document.getElementById('modelComparisonChart').getContext('2d');
+    
+    // Prepare data for all completed models
+    const modelNames = [];
+    const modelScores = [];
+    const barColors = [];
+    
+    // Define a mapping of model types to colors
+    const modelTypeColors = {
+        'classical': '#4361ee',
+        'neural': '#ff9800',
+        'quantum': '#4cc9f0'
+    };
+    
+    {% for model in model_runs %}
+    {% if model.status == 'completed' and model.metrics %}
+    modelNames.push('{{ model.algorithm }}');
+    
+    {% if experiment.problem_type == 'classification' %}
+    modelScores.push({{ (json.loads(model.metrics).accuracy * 100)|round(2) }});
+    {% else %}
+    modelScores.push({{ json.loads(model.metrics).r2|round(3) }});
+    {% endif %}
+    
+    // Highlight the current model
+    if ('{{ model.id }}' === '{{ model_run.id }}') {
+        barColors.push('#f72585'); // Highlight color
+    } else {
+        barColors.push(modelTypeColors['{{ model.model_type }}']);
+    }
+    {% endif %}
+    {% endfor %}
+    
+    const modelComparisonChart = new Chart(modelComparisonCtx, {
+        type: 'bar',
+        data: {
+            labels: modelNames,
+            datasets: [{
+                label: '{{ "Accuracy (%)" if experiment.problem_type == "classification" else "R² Score" }}',
+                data: modelScores,
+                backgroundColor: barColors,
+                borderColor: barColors.map(color => color === '#f72585' ? '#d1196e' : color),
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const value = context.raw;
+                            return {% if experiment.problem_type == 'classification' %}
+                                   `Accuracy: ${value}%`
+                                   {% else %}
+                                   `R² Score: ${value}`
+                                   {% endif %};
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: {% if experiment.problem_type == 'classification' %}true{% else %}false{% endif %},
+                    max: {% if experiment.problem_type == 'classification' %}100{% else %}1.0{% endif %},
+                    title: {
+                        display: true,
+                        text: '{{ "Accuracy (%)" if experiment.problem_type == "classification" else "R² Score" }}'
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+    
+    // Copy code button functionality
+    document.querySelectorAll('.copy-code').forEach(button => {
+        button.addEventListener('click', function() {
+            const codeTab = this.getAttribute('data-code-tab');
+            const codeBlock = document.querySelector(`#${codeTab} code`);
+            const code = codeBlock.innerText;
+            
+            navigator.clipboard.writeText(code).then(() => {
+                // Change button text temporarily
+                const originalText = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check me-1"></i>Copied!';
+                
+                setTimeout(() => {
+                    this.innerHTML = originalText;
+                }, 2000);
+            });
+        });
+    });
+</script>
+{% endblock %}
