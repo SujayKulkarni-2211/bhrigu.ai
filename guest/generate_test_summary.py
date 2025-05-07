@@ -7,12 +7,14 @@ This is used in the CI/CD pipeline to create a summary of test results.
 import os
 import re
 import json
+import sys
 from bs4 import BeautifulSoup
 from datetime import datetime
 
 def parse_html_report(file_path):
     """Parse the pytest HTML report and extract test results."""
     if not os.path.exists(file_path):
+        print(f"Warning: File not found: {file_path}")
         return None
     
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -50,8 +52,15 @@ def parse_html_report(file_path):
 
 def generate_summary():
     """Generate a summary of test results from both guest and pro modules."""
-    guest_results = parse_html_report("../guest/test-results.html")
-    pro_results = parse_html_report("../pro/test-results.html")
+    # Adjust paths to be relative to the current file location
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(current_dir)
+    
+    guest_html_path = os.path.join(current_dir, "test-results.html")
+    pro_html_path = os.path.join(project_root, "pro", "test-results.html")
+    
+    guest_results = parse_html_report(guest_html_path)
+    pro_results = parse_html_report(pro_html_path)
     
     # Create summary dictionary
     summary = {
@@ -61,7 +70,8 @@ def generate_summary():
     }
     
     # Save as JSON
-    with open("../test-summary.json", "w", encoding="utf-8") as f:
+    json_path = os.path.join(project_root, "test-summary.json")
+    with open(json_path, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
     
     # Generate Markdown report
@@ -74,19 +84,23 @@ def generate_summary():
     md += "|--------|-----------|--------|\n"
     
     # Add guest test cases
-    if guest_results:
+    if guest_results and guest_results.get("tests"):
         for test in guest_results["tests"]:
             emoji = "✅" if test["result"] == "passed" else "❌"
             md += f"| Guest | {test['name']} | {emoji} {test['result']} |\n"
+    else:
+        md += "| Guest | No tests found or all tests were skipped | ⚠️ Warning |\n"
     
     # Add pro test cases
-    if pro_results:
+    if pro_results and pro_results.get("tests"):
         for test in pro_results["tests"]:
             emoji = "✅" if test["result"] == "passed" else "❌"
             md += f"| Pro | {test['name']} | {emoji} {test['result']} |\n"
+    else:
+        md += "| Pro | No tests found or all tests were skipped | ⚠️ Warning |\n"
     
     # Add module summaries
-    if guest_results:
+    if guest_results and guest_results.get("summary"):
         md += "\n## Guest Module Summary\n\n"
         md += "| Metric | Value |\n"
         md += "|--------|-------|\n"
@@ -95,7 +109,7 @@ def generate_summary():
     else:
         md += "\n## Guest Module\n\nNo test results available.\n\n"
     
-    if pro_results:
+    if pro_results and pro_results.get("summary"):
         md += "\n## Pro Module Summary\n\n"
         md += "| Metric | Value |\n"
         md += "|--------|-------|\n"
@@ -105,10 +119,13 @@ def generate_summary():
         md += "\n## Pro Module\n\nNo test results available.\n\n"
     
     # Save as Markdown
-    with open("../test-summary.md", "w", encoding="utf-8") as f:
+    md_path = os.path.join(project_root, "test-summary.md")
+    with open(md_path, "w", encoding="utf-8") as f:
         f.write(md)
     
-    print("Test summary generated successfully.")
+    print(f"Test summary generated successfully.")
+    print(f"JSON path: {json_path}")
+    print(f"Markdown path: {md_path}")
 
 if __name__ == "__main__":
     generate_summary()

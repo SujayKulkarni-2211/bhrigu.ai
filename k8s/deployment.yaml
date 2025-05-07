@@ -15,6 +15,7 @@ spec:
       containers:
       - name: bhrigu-guest
         image: ${DOCKER_HUB_USERNAME}/bhrigu-guest:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 5000
         env:
@@ -62,8 +63,12 @@ spec:
       containers:
       - name: bhrigu-pro
         image: ${DOCKER_HUB_USERNAME}/bhrigu-pro:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 5001
+        env:
+        - name: GUEST_SERVICE_URL
+          value: "http://bhrigu-guest:5000"
         volumeMounts:
         - name: uploads-volume
           mountPath: /app/uploads
