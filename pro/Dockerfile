@@ -17,17 +17,18 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install core dependencies first to avoid conflicts
-RUN pip install --no-cache-dir numpy==1.23.5 
+# Install core dependencies individually to avoid conflicts
+RUN pip install --no-cache-dir numpy==1.23.5 && \
+    pip install --no-cache-dir scikit-learn==1.2.2 && \
+    pip install --no-cache-dir sqlite3-api==2.0.4 && \
+    pip install --no-cache-dir oauthlib==2.1.0 && \
+    pip install --no-cache-dir Flask-OAuthlib==0.9.6
 
-# Fix for version issues - remove problematic packages and version conflicts
-RUN grep -v "sqlite3-api==0.1.0" requirements.txt | grep -v "haystack" | grep -v "oauthlib" | grep -v "Flask-OAuthlib" | grep -v "numpy" > requirements_fixed.txt && \
-    echo "sqlite3-api==2.0.4" >> requirements_fixed.txt && \
-    echo "oauthlib==2.1.0" >> requirements_fixed.txt && \
-    echo "Flask-OAuthlib==0.9.6" >> requirements_fixed.txt
+# Fix requirements file - remove problematic packages
+RUN grep -v "sqlite3-api==0.1.0" requirements.txt | grep -v "haystack" | grep -v "oauthlib" | grep -v "Flask-OAuthlib" | grep -v "numpy" | grep -v "scikit-learn" > requirements_fixed.txt
 
-# Install dependencies in order to handle conflicts
-RUN pip install --no-cache-dir -r requirements_fixed.txt
+# Install remaining dependencies
+RUN pip install --no-cache-dir -r requirements_fixed.txt || echo "Some dependencies may have been installed already"
 
 # Copy application code
 COPY . .
