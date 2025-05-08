@@ -17,9 +17,11 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Fix for version issues - remove problematic packages
-RUN grep -v "sqlite3-api==0.1.0" requirements.txt | grep -v "haystack" > requirements_fixed.txt && \
-    echo "sqlite3-api==2.0.4" >> requirements_fixed.txt
+# Fix for version issues - remove problematic packages and version conflicts
+RUN grep -v "sqlite3-api==0.1.0" requirements.txt | grep -v "haystack" | grep -v "oauthlib" | grep -v "Flask-OAuthlib" > requirements_fixed.txt && \
+    echo "sqlite3-api==2.0.4" >> requirements_fixed.txt && \
+    echo "oauthlib==2.1.0" >> requirements_fixed.txt && \
+    echo "Flask-OAuthlib==0.9.6" >> requirements_fixed.txt
 
 # Install dependencies from fixed requirements.txt
 RUN pip install --no-cache-dir -r requirements_fixed.txt

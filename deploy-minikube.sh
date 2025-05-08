@@ -35,20 +35,26 @@ minikube addons enable ingress
 echo "🔄 Configuring Docker environment to use Minikube..."
 eval $(minikube docker-env)
 
-# Fix sqlite3-api version in requirements.txt files if needed
-echo "🔄 Checking and fixing requirements files if needed..."
+# Fix requirements.txt files
+echo "🔄 Fixing requirements files for both services..."
 
-if grep -q "sqlite3-api==0.1.0" ./guest/requirements.txt; then
-    echo "🔧 Fixing sqlite3-api version in guest requirements.txt..."
-    grep -v "sqlite3-api==0.1.0" ./guest/requirements.txt > ./guest/requirements_fixed.txt
+# Fix guest requirements.txt
+echo "🔄 Fixing guest requirements.txt..."
+if [ -f "./guest/requirements.txt" ]; then
+    grep -v "sqlite3-api==0.1.0" ./guest/requirements.txt | grep -v "haystack" | grep -v "oauthlib" | grep -v "Flask-OAuthlib" > ./guest/requirements_fixed.txt
     echo "sqlite3-api==2.0.4" >> ./guest/requirements_fixed.txt
+    echo "oauthlib==2.1.0" >> ./guest/requirements_fixed.txt
+    echo "Flask-OAuthlib==0.9.6" >> ./guest/requirements_fixed.txt
     mv ./guest/requirements_fixed.txt ./guest/requirements.txt
 fi
 
-if grep -q "sqlite3-api==0.1.0" ./pro/requirements.txt; then
-    echo "🔧 Fixing sqlite3-api version in pro requirements.txt..."
-    grep -v "sqlite3-api==0.1.0" ./pro/requirements.txt > ./pro/requirements_fixed.txt
+# Fix pro requirements.txt
+echo "🔄 Fixing pro requirements.txt..."
+if [ -f "./pro/requirements.txt" ]; then
+    grep -v "sqlite3-api==0.1.0" ./pro/requirements.txt | grep -v "haystack" | grep -v "oauthlib" | grep -v "Flask-OAuthlib" > ./pro/requirements_fixed.txt
     echo "sqlite3-api==2.0.4" >> ./pro/requirements_fixed.txt
+    echo "oauthlib==2.1.0" >> ./pro/requirements_fixed.txt
+    echo "Flask-OAuthlib==0.9.6" >> ./pro/requirements_fixed.txt
     mv ./pro/requirements_fixed.txt ./pro/requirements.txt
 fi
 

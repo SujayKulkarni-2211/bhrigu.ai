@@ -38,8 +38,10 @@ jobs:
       - name: Prepare fixed requirements for guest
         working-directory: ./guest
         run: |
-          grep -v "sqlite3-api==0.1.0" requirements.txt | grep -v "haystack" > requirements_fixed.txt
+          grep -v "sqlite3-api==0.1.0" requirements.txt | grep -v "haystack" | grep -v "oauthlib" | grep -v "Flask-OAuthlib" > requirements_fixed.txt
           echo "sqlite3-api==2.0.4" >> requirements_fixed.txt
+          echo "oauthlib==2.1.0" >> requirements_fixed.txt
+          echo "Flask-OAuthlib==0.9.6" >> requirements_fixed.txt
 
       - name: Install guest dependencies
         working-directory: ./guest
@@ -51,8 +53,10 @@ jobs:
       - name: Prepare fixed requirements for pro
         working-directory: ./pro
         run: |
-          grep -v "sqlite3-api==0.1.0" requirements.txt | grep -v "haystack" > requirements_fixed.txt
+          grep -v "sqlite3-api==0.1.0" requirements.txt | grep -v "haystack" | grep -v "oauthlib" | grep -v "Flask-OAuthlib" > requirements_fixed.txt
           echo "sqlite3-api==2.0.4" >> requirements_fixed.txt
+          echo "oauthlib==2.1.0" >> requirements_fixed.txt
+          echo "Flask-OAuthlib==0.9.6" >> requirements_fixed.txt
 
       - name: Install pro dependencies
         working-directory: ./pro
