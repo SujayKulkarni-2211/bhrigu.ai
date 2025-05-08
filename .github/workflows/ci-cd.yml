@@ -35,17 +35,29 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install setuptools==68.0.0 wheel==0.40.0
 
+      - name: Prepare fixed requirements for guest
+        working-directory: ./guest
+        run: |
+          grep -v "sqlite3-api==0.1.0" requirements.txt > requirements_fixed.txt
+          echo "sqlite3-api==2.0.4" >> requirements_fixed.txt
+
       - name: Install guest dependencies
         working-directory: ./guest
         run: |
-          pip install --no-cache-dir -r requirements.txt
+          pip install --no-cache-dir -r requirements_fixed.txt
           pip install pytest pytest-html pytest-cov beautifulsoup4
         continue-on-error: true
+
+      - name: Prepare fixed requirements for pro
+        working-directory: ./pro
+        run: |
+          grep -v "sqlite3-api==0.1.0" requirements.txt > requirements_fixed.txt
+          echo "sqlite3-api==2.0.4" >> requirements_fixed.txt
 
       - name: Install pro dependencies
         working-directory: ./pro
         run: |
-          pip install --no-cache-dir -r requirements.txt
+          pip install --no-cache-dir -r requirements_fixed.txt
           pip install pytest pytest-html pytest-cov beautifulsoup4
         continue-on-error: true
 

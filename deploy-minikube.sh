@@ -35,6 +35,23 @@ minikube addons enable ingress
 echo "🔄 Configuring Docker environment to use Minikube..."
 eval $(minikube docker-env)
 
+# Fix sqlite3-api version in requirements.txt files if needed
+echo "🔄 Checking and fixing requirements files if needed..."
+
+if grep -q "sqlite3-api==0.1.0" ./guest/requirements.txt; then
+    echo "🔧 Fixing sqlite3-api version in guest requirements.txt..."
+    grep -v "sqlite3-api==0.1.0" ./guest/requirements.txt > ./guest/requirements_fixed.txt
+    echo "sqlite3-api==2.0.4" >> ./guest/requirements_fixed.txt
+    mv ./guest/requirements_fixed.txt ./guest/requirements.txt
+fi
+
+if grep -q "sqlite3-api==0.1.0" ./pro/requirements.txt; then
+    echo "🔧 Fixing sqlite3-api version in pro requirements.txt..."
+    grep -v "sqlite3-api==0.1.0" ./pro/requirements.txt > ./pro/requirements_fixed.txt
+    echo "sqlite3-api==2.0.4" >> ./pro/requirements_fixed.txt
+    mv ./pro/requirements_fixed.txt ./pro/requirements.txt
+fi
+
 # Build Docker images locally with improved caching
 echo "🔄 Building Docker images locally..."
 
@@ -109,7 +126,7 @@ if kubectl get pods | grep -q "Error\|CrashLoopBackOff"; then
     
     for pod in $(kubectl get pods | grep "Error\|CrashLoopBackOff" | awk '{print $1}'); do
         echo ""
-        echo "📜 Logs for $pod:"
+        echo "📜 Logs for pod $pod:"
         kubectl logs $pod
         echo "-----------------------------------"
     done
