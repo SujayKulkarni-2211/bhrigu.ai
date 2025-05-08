@@ -38,7 +38,7 @@ jobs:
       - name: Prepare fixed requirements for guest
         working-directory: ./guest
         run: |
-          grep -v "sqlite3-api==0.1.0" requirements.txt > requirements_fixed.txt
+          grep -v "sqlite3-api==0.1.0" requirements.txt | grep -v "haystack" > requirements_fixed.txt
           echo "sqlite3-api==2.0.4" >> requirements_fixed.txt
 
       - name: Install guest dependencies
@@ -51,7 +51,7 @@ jobs:
       - name: Prepare fixed requirements for pro
         working-directory: ./pro
         run: |
-          grep -v "sqlite3-api==0.1.0" requirements.txt > requirements_fixed.txt
+          grep -v "sqlite3-api==0.1.0" requirements.txt | grep -v "haystack" > requirements_fixed.txt
           echo "sqlite3-api==2.0.4" >> requirements_fixed.txt
 
       - name: Install pro dependencies

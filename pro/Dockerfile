@@ -17,8 +17,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Fix for sqlite3-api version issue
-RUN grep -v "sqlite3-api==0.1.0" requirements.txt > requirements_fixed.txt && \
+# Fix for version issues - remove problematic packages
+RUN grep -v "sqlite3-api==0.1.0" requirements.txt | grep -v "haystack" > requirements_fixed.txt && \
     echo "sqlite3-api==2.0.4" >> requirements_fixed.txt
 
 # Install dependencies from fixed requirements.txt
