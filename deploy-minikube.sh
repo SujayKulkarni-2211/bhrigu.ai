@@ -41,7 +41,7 @@ echo "🔄 Fixing requirements files for both services..."
 # Fix guest requirements.txt
 echo "🔄 Fixing guest requirements.txt..."
 if [ -f "./guest/requirements.txt" ]; then
-    grep -v "sqlite3-api==0.1.0" ./guest/requirements.txt | grep -v "haystack" | grep -v "oauthlib" | grep -v "Flask-OAuthlib" > ./guest/requirements_fixed.txt
+    grep -v "sqlite3-api==0.1.0" ./guest/requirements.txt | grep -v "haystack" | grep -v "oauthlib" | grep -v "Flask-OAuthlib" | grep -v "numpy" > ./guest/requirements_fixed.txt
     echo "sqlite3-api==2.0.4" >> ./guest/requirements_fixed.txt
     echo "oauthlib==2.1.0" >> ./guest/requirements_fixed.txt
     echo "Flask-OAuthlib==0.9.6" >> ./guest/requirements_fixed.txt
@@ -51,7 +51,7 @@ fi
 # Fix pro requirements.txt
 echo "🔄 Fixing pro requirements.txt..."
 if [ -f "./pro/requirements.txt" ]; then
-    grep -v "sqlite3-api==0.1.0" ./pro/requirements.txt | grep -v "haystack" | grep -v "oauthlib" | grep -v "Flask-OAuthlib" > ./pro/requirements_fixed.txt
+    grep -v "sqlite3-api==0.1.0" ./pro/requirements.txt | grep -v "haystack" | grep -v "oauthlib" | grep -v "Flask-OAuthlib" | grep -v "numpy" > ./pro/requirements_fixed.txt
     echo "sqlite3-api==2.0.4" >> ./pro/requirements_fixed.txt
     echo "oauthlib==2.1.0" >> ./pro/requirements_fixed.txt
     echo "Flask-OAuthlib==0.9.6" >> ./pro/requirements_fixed.txt
