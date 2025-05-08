@@ -2,10 +2,12 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including MySQL client
 RUN apt-get update && apt-get install -y \
     build-essential \
     python3-dev \
+    default-libmysqlclient-dev \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # Install setuptools first to avoid build issues

@@ -25,10 +25,13 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install build dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential python3-dev
+          sudo apt-get install -y build-essential python3-dev default-libmysqlclient-dev pkg-config
+
+      - name: Install build dependencies
+        run: |
           python -m pip install --upgrade pip
           python -m pip install setuptools==68.0.0 wheel==0.40.0
 
@@ -91,13 +94,13 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Login to DockerHub
+        if: env.DOCKER_HUB_USERNAME != '' && env.DOCKER_HUB_ACCESS_TOKEN != ''
         uses: docker/login-action@v3
         with:
           username: ${{ env.DOCKER_HUB_USERNAME }}
           password: ${{ env.DOCKER_HUB_ACCESS_TOKEN }}
-        continue-on-error: true
 
-      - name: Build and Push Guest Image
+      - name: Build Guest Image
         uses: docker/build-push-action@v5
         with:
           context: ./guest
@@ -107,7 +110,7 @@ jobs:
           cache-to: type=gha,mode=max
           outputs: type=docker,dest=/tmp/guest-image.tar
 
-      - name: Build and Push Pro Image
+      - name: Build Pro Image
         uses: docker/build-push-action@v5
         with:
           context: ./pro
@@ -173,6 +176,8 @@ jobs:
               sed -i "s|\${DOCKER_HUB_USERNAME}|$DOCKER_HUB_USERNAME|g" k8s/deployment.yaml
             else
               eval $(minikube -p minikube docker-env)
+              # Build Docker images directly in Minikube
+              echo "Building Docker images locally in Minikube..."
               docker build -t bhrigu-guest:latest ./guest
               docker build -t bhrigu-pro:latest ./pro
               sed -i "s|\${DOCKER_HUB_USERNAME}/bhrigu-guest:latest|bhrigu-guest:latest|g" k8s/deployment.yaml
